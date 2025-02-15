@@ -241,7 +241,7 @@
       runs-on: ubuntu-latest
       environment: github_release
       needs: [compile_sketch]
-      if: github.ref_type == 'tag'
+      # if: github.ref_type == 'tag'
       steps:
       - id: launcher_version
         name: Get Version
