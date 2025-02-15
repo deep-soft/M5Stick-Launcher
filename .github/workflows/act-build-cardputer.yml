@@ -3,17 +3,23 @@
   name: act - Build and Push
 
   on:
+    workflow_dispatch:
+    paths-ignore:
+      - '.github/**'
     pull_request:
       branches:
         - main
+      paths-ignore:
+        - '.github/**'
     push:
       branches:
         - main
         - dev
+      paths-ignore:
+        - '.github/**'
       tags:
         - "*"
-    workflow_dispatch:
-          
+
   jobs:
     compile_sketch:
       name: Build ${{ matrix.board.name }}
