@@ -2,17 +2,16 @@
 # act-build-cardputer
   name: act - Build and Push
 
-#  on:
-#    pull_request:
-#      branches:
-#        - main
-#    push:
-#      branches:
-#        - main
-#        - dev
-#      tags:
-#        - "*"
   on:
+    pull_request:
+      branches:
+        - main
+    push:
+      branches:
+        - main
+        - dev
+      tags:
+        - "*"
     workflow_dispatch:
           
   jobs:
@@ -241,7 +240,7 @@
       runs-on: ubuntu-latest
       environment: github_release
       needs: [compile_sketch]
-      # if: github.ref_type == 'tag'
+      if: github.ref_type == 'tag'
       steps:
       - id: launcher_version
         name: Get Version
