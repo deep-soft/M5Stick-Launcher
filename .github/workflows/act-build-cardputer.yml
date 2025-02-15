@@ -1,6 +1,6 @@
 ---
 # act-build-cardputer
-  name: Build and Push OR check-PR
+  name: act - Build and Push
 
 #  on:
 #    pull_request:
