@@ -39,6 +39,12 @@ void _setup_gpio() {
       pinMode(CC1101_SW1_PIN, OUTPUT);
       pinMode(CC1101_SW0_PIN, OUTPUT);
 
+      // before powering on, all CS signals should be pulled high and in an unselected state;
+      pinMode(TFT_CS, OUTPUT);
+      digitalWrite(TFT_CS, HIGH);
+      pinMode(SDCARD_CS, OUTPUT);
+      digitalWrite(SDCARD_CS, HIGH);
+
       // Chip Select CC1101 to HIGH State
       pinMode(CC1101_SS_PIN, OUTPUT);
       digitalWrite(CC1101_SS_PIN,HIGH);
@@ -89,7 +95,7 @@ int getBattery() {
   int percent=0;
   #if defined(USE_BQ27220_VIA_I2C)
     //percent=bq.getChargePcnt(); // this function runs bq.getRemainCap()/bq.getFullChargeCap().... bq.getFullChargeCap() is hardcoded int 3000.
-    percent=bq.getRemainCap()/10.7; // My battery is 1300mAh and bq.getRemainCap() doesn't go upper than 1083, that is why i'm dividing by 10.7 (var/1070)*100
+    percent=bq.getRemainCap()/12.5; // My battery is 1300mAh and bq.getRemainCap() doesn't go upper than 1083, that is why i'm dividing by 12.5 (var/1250)*100
     
   #elif defined(T_EMBED)
     uint8_t _batAdcCh = ADC1_GPIO4_CHANNEL;
@@ -187,12 +193,12 @@ void checkReboot() {
         {
             // Display poweroff bar only if holding button
             if (millis() - time_count > 500) {
-                tft.setTextSize(1);
-                tft.setTextColor(FGCOLOR, BGCOLOR);
+                tft->setTextSize(1);
+                tft->setTextColor(FGCOLOR, BGCOLOR);
                 countDown = (millis() - time_count) / 1000 + 1;
-                if(countDown<4) tft.drawCentreString("PWR OFF IN "+String(countDown)+"/3",tftWidth/2,12,1);
+                if(countDown<4) tft->drawCentreString("PWR OFF IN "+String(countDown)+"/3",tftWidth/2,12,1);
                 else { 
-                  tft.fillScreen(BGCOLOR);
+                  tft->fillScreen(BGCOLOR);
                   while(digitalRead(BK_BTN)==BTN_ACT);
                   delay(200);
                   powerOff();
@@ -203,7 +209,7 @@ void checkReboot() {
 
         // Clear text after releasing the button
         delay(30);
-        tft.fillRect(60, 12, tftWidth - 60, tft.fontHeight(1), BGCOLOR);
+        tft->fillRect(60, 12, tftWidth - 60, 8, BGCOLOR);
     }
   #endif
 }

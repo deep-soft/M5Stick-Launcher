@@ -133,8 +133,11 @@ struct TouchPointPro {
 ** Handles the variables PrevPress, NextPress, SelPress, AnyKeyPress and EscPress
 **********************************************************************/
 void InputHandler(void) {
+    static long tm=0;
     TouchPointPro t;
+    if(millis() - tm>200 || LongPress) {
     if (touch.getPoint(t.x, t.y, touch.getSupportTouchPoint()) && touch.isPressed()) {
+        tm=millis();
         if(rotation==1) {
             t.y[0] = TFT_WIDTH-t.y[0];
         }
@@ -156,7 +159,7 @@ void InputHandler(void) {
         Serial.printf("\nPressed x=%d , y=%d, rot: %d",t.x[0], t.y[0], rotation);
 
         if(!wakeUpScreen()) AnyKeyPress = true;
-        else goto END;
+        else return;
 
         // Touch point global variable
         touchPoint.x = t.x[0];
@@ -164,10 +167,6 @@ void InputHandler(void) {
         touchPoint.pressed=true;
         touchHeatMap(touchPoint);
     }
-    END:
-    if(AnyKeyPress) {
-      long tmp=millis();
-      while((millis()-tmp)<200 && touch.getPoint(t.x, t.y, touch.getSupportTouchPoint()) && touch.isPressed()) delay(50);
     }
 }
 

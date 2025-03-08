@@ -56,6 +56,8 @@ struct TouchPoint {
 extern TouchPoint touchPoint;
 extern keyStroke KeyStroke;
 // Navigation Variables
+extern long LongPressTmp;
+extern volatile bool LongPress;
 extern volatile bool NextPress;
 extern volatile bool PrevPress;
 extern volatile bool UpPress;
@@ -69,6 +71,7 @@ extern volatile uint16_t tftWidth;
 
 extern TaskHandle_t xHandle;
 extern inline bool check(volatile bool &btn) {
+#ifndef DONT_USE_INPUT_TASK
   if(!btn) return false;
   vTaskSuspend( xHandle );
   btn=false;
@@ -76,6 +79,13 @@ extern inline bool check(volatile bool &btn) {
   delay(10);
   vTaskResume( xHandle );
   return true;
+#else
+    InputHandler();
+    if(!btn) return false;
+    btn=false;
+    AnyKeyPress=false;
+    return true;
+#endif
 }
 
 #define U_FAT_vfs 300 

@@ -222,7 +222,13 @@ void configureWebServer() {
   server->on("/logged-out", HTTP_GET, [](AsyncWebServerRequest * request) {
     String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
     Serial.println(logmessage);
-    request->send_P(401, "text/html", logout_html, processor);
+    #ifdef PART_04MB
+    AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", "", 0);
+    #else
+    AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", logout_html, logout_html_size);
+    response->addHeader("Content-Encoding", "gzip");
+    #endif
+    request->send(response);
 
   });
 
@@ -277,14 +283,52 @@ void configureWebServer() {
   server->onFileUpload(handleUpload);
 
 
-  server->on("/", HTTP_GET, [](AsyncWebServerRequest * request) {
+  server->on("/scripts.js", HTTP_GET, [](AsyncWebServerRequest * request) {
     if (checkUserWebAuth(request)) {
-      request->send_P(200, "text/html", index_html, processor);
+      AsyncWebServerResponse *response = request->beginResponse_P(200, "application/javascript", scripts_js, scripts_js_size);
+      response->addHeader("Content-Encoding", "gzip");
+      request->send(response);
     } else {
       return request->requestAuthentication();
     }
   });
-
+  server->on("/style.css", HTTP_GET, [](AsyncWebServerRequest * request) {
+    if (checkUserWebAuth(request)) {
+      #ifdef PART_04MB
+      AsyncWebServerResponse *response = request->beginResponse_P(200, "text/css", style_4mb_css, style_4mb_css_size);
+      #else
+      AsyncWebServerResponse *response = request->beginResponse_P(200, "text/css", style_css, style_css_size);
+      #endif
+      response->addHeader("Content-Encoding", "gzip");
+      request->send(response);
+    } else {
+      return request->requestAuthentication();
+    }
+  });
+  server->on("/", HTTP_GET, [](AsyncWebServerRequest * request) {
+    if (checkUserWebAuth(request)) {
+      AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", index_html, index_html_size);
+      response->addHeader("Content-Encoding", "gzip");
+      request->send(response);
+    } else {
+      return request->requestAuthentication();
+    }
+  });
+  server->on("/systeminfo", HTTP_GET,[](AsyncWebServerRequest * request) {
+    char response_body[300];
+    size_t LittleFSTotalBytes = LittleFS.totalBytes();
+    size_t LittleFSUsedBytes = LittleFS.usedBytes();
+    size_t SDTotalBytes = SD.totalBytes();
+    size_t SDUsedBytes = SD.usedBytes();
+    sprintf(response_body,
+      "{\"%s\":\"%s\",\"SD\":{\"%s\":\"%s\",\"%s\":\"%s\",\"%s\":\"%s\"}}",
+      "VERSION", LAUNCHER,
+      "free", humanReadableSize(SDTotalBytes - SDUsedBytes).c_str(),
+      "used", humanReadableSize(SDUsedBytes).c_str(),
+      "total", humanReadableSize(SDTotalBytes).c_str()
+    );
+    request->send(200, "application/json", response_body);
+  });
   server->on("/reboot", HTTP_GET, [](AsyncWebServerRequest * request) {
     if (checkUserWebAuth(request)) {
       shouldReboot = true;
@@ -374,6 +418,11 @@ void configureWebServer() {
         EEPROM.write(93, static_cast<uint8_t>(cs));
         EEPROM.commit();
         EEPROM.end();
+        _sck=sck;
+        _miso=miso;
+        _mosi=mosi;
+        _cs=cs;
+        setupSdCard();
         request->send(200, "text/plain", "Pins configured.");
         error:
         delay(1);
@@ -454,29 +503,29 @@ void startWebUi(String ssid, int encryptation, bool mode_ap) {
   server->begin();
   delay(500);
 
-  tft.drawRoundRect(5,5,tftWidth-10,tftHeight-10,5,ALCOLOR);
-  tft.fillSmoothRoundRect(6,6,tftWidth-12,tftHeight-12,5,BGCOLOR);
+  tft->drawRoundRect(5,5,tftWidth-10,tftHeight-10,5,ALCOLOR);
+  tft->fillRoundRect(6,6,tftWidth-12,tftHeight-12,5,BGCOLOR);
   setTftDisplay(7,7,ALCOLOR,FP,BGCOLOR);
-  tft.drawCentreString("-= Launcher WebUI =-",tftWidth/2,0,8);
+  tft->drawCentreString("-= Launcher WebUI =-",tftWidth/2,0,8);
   String txt;
   if(!mode_ap) txt = WiFi.localIP().toString();
   else txt = WiFi.softAPIP().toString();
   
 #if TFT_HEIGHT<200
-  tft.drawCentreString("http://launcher.local", tftWidth/2,17,1);
+  tft->drawCentreString("http://launcher.local", tftWidth/2,17,1);
   setTftDisplay(7,26,~BGCOLOR,FP,BGCOLOR);
 #else
-  tft.drawCentreString("http://launcher.local", tftWidth/2,22,1);
+  tft->drawCentreString("http://launcher.local", tftWidth/2,22,1);
   setTftDisplay(7,47,~BGCOLOR,FP,BGCOLOR);
 #endif
-  tft.setTextSize(FM);
-  tft.print("IP ");   tftprintln(txt,10,1);
+  tft->setTextSize(FM);
+  tft->print("IP ");   tftprintln(txt,10,1);
   tftprintln("Usr: " + String(wui_usr),10,1);
   tftprintln("Pwd: " + String(wui_pwd),10,1);
 
   setTftDisplay(7,tftHeight-39,ALCOLOR,FP);
 
-  tft.drawCentreString("press " + String(BTN_ALIAS) + " to stop", tftWidth/2,tftHeight-15,1);
+  tft->drawCentreString("press " + String(BTN_ALIAS) + " to stop", tftWidth/2,tftHeight-15,1);
 
   while (!check(SelPress))
   {
@@ -503,7 +552,7 @@ void startWebUi(String ssid, int encryptation, bool mode_ap) {
   WiFi.mode(WIFI_OFF);
   stopOta = true; // used to verify if webUI was opened before to stop OTA and request restart
   
-  tft.fillScreen(BGCOLOR);
+  tft->fillScreen(BGCOLOR);
 }
 
 #else 
