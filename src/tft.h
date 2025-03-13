@@ -6,6 +6,10 @@
 #define BLACK TFT_BLACK
 #define RED TFT_RED
 #define GREEN TFT_GREEN
+#define DARKCYAN TFT_DARKCYAN
+#define LIGHTGREY TFT_LIGHTGREY
+
+
 class Ard_eSPI: public EPD_translate {
     public:
     inline int getTextsize() { return textsize; };
@@ -157,6 +161,9 @@ class Ard_eSPI : public lgfx::LGFX_Device {
 #elif RGB_PANEL
 #define _TFT_DRV Arduino_RGB_Display
 #define _TFT_DRVF(a,b,c,d,e,f,g,h,i,j) Arduino_RGB_Display(e,f,a,0,true)
+#elif AXS15231B_QSPI
+#define _TFT_DRV Arduino_AXS15231B
+#define _TFT_DRVF(a,b,c,d,e,f,g,h,i,j) Arduino_AXS15231B(a,b,c,d,e,f)
 #else
 // CYD Default to not shoot errors on screen
 #define _TFT_DRV Arduino_ILI9341
