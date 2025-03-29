@@ -6,10 +6,8 @@
 #include "settings.h"
 
 #if defined(HEADLESS)
-SerialDisplayClass *tft;
-#elif defined(E_PAPER_DISPLAY) || defined(USE_TFT_ESPI)
-Ard_eSPI *tft;
-#elif defined(USE_LOVYANGFX) 
+SerialDisplayClass *tft= new SerialDisplayClass();
+#elif defined(E_PAPER_DISPLAY) || defined(USE_TFT_ESPI) || defined(USE_LOVYANGFX) 
 Ard_eSPI *tft = new Ard_eSPI();
 #else
   #ifdef TFT_PARALLEL_8_BIT
@@ -582,8 +580,8 @@ void drawMainMenu(int index) {
 
     setTftDisplay(-1, -1, FGCOLOR, 1, BGCOLOR);
 
-#if TFT_HEIGHT<125
-    tft->drawCentreString(messages[index], tftWidth / 2, 26, 1);
+#if TFT_WIDTH<130
+    tft->drawCentreString(messages[index], tftWidth / 2, 28, 1);
 #else
     tft->drawCentreString(messages[index], tftWidth / 2, tftHeight - 25, 1);
 #endif
@@ -637,7 +635,7 @@ void drawBatteryStatus(uint8_t bat) {
 #ifdef E_PAPER_DISPLAY
   #define MAX_ITEMS 14
 #else
-  #define MAX_ITEMS (int)(tftHeight-20)/(LH*2)
+  #define MAX_ITEMS (int)(tftHeight-20)/(LH*FM)
 #endif
 Opt_Coord listFiles(int index, String fileList[][3]) {
   #ifdef E_PAPER_DISPLAY
