@@ -1,8 +1,7 @@
-#include <interface.h>
 #include "powerSave.h"
+#include <interface.h>
 
 #include <M5Unified.h>
-
 
 /***************************************************************************************
 ** Function name: _setup_gpio()
@@ -10,9 +9,8 @@
 ** Description:   initial setup for the device
 ***************************************************************************************/
 void _setup_gpio() {
-  M5.begin(); //Need to test if SDCard inits with the new setup
+    M5.begin(); // Need to test if SDCard inits with the new setup
 }
-
 
 /***************************************************************************************
 ** Function name: getBattery()
@@ -20,13 +18,10 @@ void _setup_gpio() {
 ** Description:   Delivers the battery value from 1-100
 ***************************************************************************************/
 int getBattery() {
-  uint8_t percent=0;
-  percent = M5.Power.getBatteryLevel();
-  return  (percent < 0) ? 0
-        : (percent >= 100) ? 100
-        :  percent;
+    uint8_t percent = 0;
+    percent = M5.Power.getBatteryLevel();
+    return (percent < 0) ? 0 : (percent >= 100) ? 100 : percent;
 }
-
 
 /*********************************************************************
 ** Function: setBrightness
@@ -34,8 +29,8 @@ int getBattery() {
 ** set brightness value
 **********************************************************************/
 void _setBrightness(uint8_t brightval) {
-  uint8_t _tmp = (255*brightval)/100;
-  M5.Lcd.setBrightness(_tmp);
+    uint8_t _tmp = (255 * brightval) / 100;
+    M5.Lcd.setBrightness(_tmp);
 }
 
 /*********************************************************************
@@ -44,25 +39,25 @@ void _setBrightness(uint8_t brightval) {
 **********************************************************************/
 void InputHandler(void) {
     M5.update();
-    if(M5.BtnA.isPressed() || M5.BtnB.isPressed() || M5.BtnC.isPressed()) {
-        if(!wakeUpScreen()) AnyKeyPress = true;
+    if (M5.BtnA.isPressed() || M5.BtnB.isPressed() || M5.BtnC.isPressed()) {
+        if (!wakeUpScreen()) AnyKeyPress = true;
         else goto END;
-    }    
-    if(M5.BtnA.isPressed()) {
+    }
+    if (M5.BtnA.isPressed()) {
         PrevPress = true;
         EscPress = true;
     }
-    if(M5.BtnC.isPressed()) {
-        NextPress = true;
-    }
-    if(M5.BtnB.isPressed()) {
-        SelPress = true;
-    }
-    END:
-    if(AnyKeyPress) {
-      long tmp=millis();
-      M5.update();
-      while((millis()-tmp)<200 && (M5.BtnA.isPressed() || M5.BtnB.isPressed() || M5.BtnC.isPressed())) { delay(50); M5.update(); };
+    if (M5.BtnC.isPressed()) { NextPress = true; }
+    if (M5.BtnB.isPressed()) { SelPress = true; }
+END:
+    if (AnyKeyPress) {
+        long tmp = millis();
+        M5.update();
+        while ((millis() - tmp) < 200 &&
+               (M5.BtnA.isPressed() || M5.BtnB.isPressed() || M5.BtnC.isPressed())) {
+            delay(50);
+            M5.update();
+        };
     }
 }
 
@@ -71,12 +66,11 @@ void InputHandler(void) {
 ** location: mykeyboard.cpp
 ** Turns off the device (or try to)
 **********************************************************************/
-void powerOff() { }
-
+void powerOff() {}
 
 /*********************************************************************
 ** Function: checkReboot
 ** location: mykeyboard.cpp
 ** Btn logic to tornoff the device (name is odd btw)
 **********************************************************************/
-void checkReboot() { }
+void checkReboot() {}

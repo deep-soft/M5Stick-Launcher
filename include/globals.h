@@ -13,7 +13,40 @@
     #define SDM SD
     #define SDM_SD
 #endif
+struct MenuOptions {
+    String name;
+    String text;
+    std::function<void()> action;
+    bool active;
+    bool selected;
+    uint16_t x;
+    uint16_t y;
+    uint16_t w;
+    uint16_t h;
 
+    MenuOptions(String name, String text, std::function<void()> action, bool active=true, bool selected=false, uint16_t x=0, uint16_t y=0, uint16_t w=0, uint16_t h=0) : name(name), text(text), action(action), active(active), selected(selected), x(x), y(y), w(w), h(h) {}
+    MenuOptions() : name(""), text(""), action(nullptr), active(true), selected(false), x(0), y(0), w(0), h(0) {}
+
+    bool contain(int x, int y)
+    {
+      return this->x <= x && x < (this->x + this->w)
+          && this->y <= y && y < (this->y + this->h);
+    }
+    void resetCoords()
+    {
+      x=0;
+      y=0;
+      w=0;
+      h=0;
+    }
+    void setCoords(int x, int y, int w, int h)
+    {
+      this->x = x;
+      this->y = y;
+      this->w = w;
+      this->h = h;
+    }
+};
 struct keyStroke { // DO NOT CHANGE IT!!!!!
     bool pressed=false;
     bool exit_key=false;
@@ -66,6 +99,18 @@ extern volatile bool SelPress;
 extern volatile bool EscPress;
 extern volatile bool AnyKeyPress;
 
+inline void resetGlobals(void) {
+    NextPress=false;
+    PrevPress=false;
+    UpPress=false;
+    DownPress=false;
+    SelPress=false;
+    EscPress=false;
+    AnyKeyPress=false;
+    touchPoint.Clear();
+    KeyStroke.Clear();
+}
+
 extern volatile uint16_t tftHeight;
 extern volatile uint16_t tftWidth;
 
@@ -80,7 +125,12 @@ extern inline bool check(volatile bool &btn) {
   vTaskResume( xHandle );
   return true;
 #else
-    InputHandler();
+static uint8_t count = 0;
+    if(count>5) { 
+        InputHandler();
+        count = 0;
+    }
+    count++;
     if(!btn) return false;
     btn=false;
     AnyKeyPress=false;
