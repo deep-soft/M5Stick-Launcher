@@ -120,7 +120,7 @@ bool partitionSetter(const uint8_t *scheme, size_t scheme_size) {
     esp_err_t err;
 
     // Apagar a região de memória flash
-    err = spi_flash_erase_range(0x8000, PARTITION_SIZE);
+    err = esp_flash_erase_region(NULL, 0x8000, PARTITION_SIZE);
     if (err != ESP_OK) {
         ESP_LOGE("FLASH", "Failed to erase flash region (0x%x)", err);
         heap_caps_free(buffer);
