@@ -1,17 +1,18 @@
 // Globals.h
-// https://github.com/espressif/esp-idf/blob/master/components/soc/esp32/include/soc/reset_reasons.h for further refference
+// https://github.com/espressif/esp-idf/blob/master/components/soc/esp32/include/soc/reset_reasons.h for
+// further refference
 #ifndef GLOBALS_H
 #define GLOBALS_H
-#include <pre_compiler.h>
-#include <interface.h>
 #include <Arduino.h>
 #include <ArduinoJson.h>
-#include <functional>
 #include <LittleFS.h> // to make M5GFX compile in Core, Core2 and CoreS3 devices
+#include <functional>
+#include <interface.h>
+#include <pre_compiler.h>
 #include <vector>
 #if !defined(SDM)
-    #define SDM SD
-    #define SDM_SD
+#define SDM SD
+#define SDM_SD
 #endif
 struct MenuOptions {
     String name;
@@ -24,32 +25,34 @@ struct MenuOptions {
     uint16_t w;
     uint16_t h;
 
-    MenuOptions(String name, String text, std::function<void()> action, bool active=true, bool selected=false, uint16_t x=0, uint16_t y=0, uint16_t w=0, uint16_t h=0) : name(name), text(text), action(action), active(active), selected(selected), x(x), y(y), w(w), h(h) {}
-    MenuOptions() : name(""), text(""), action(nullptr), active(true), selected(false), x(0), y(0), w(0), h(0) {}
+    MenuOptions(
+        String name, String text, std::function<void()> action, bool active = true, bool selected = false,
+        uint16_t x = 0, uint16_t y = 0, uint16_t w = 0, uint16_t h = 0
+    )
+        : name(name), text(text), action(action), active(active), selected(selected), x(x), y(y), w(w), h(h) {
+    }
+    MenuOptions()
+        : name(""), text(""), action(nullptr), active(true), selected(false), x(0), y(0), w(0), h(0) {}
 
-    bool contain(int x, int y)
-    {
-      return this->x <= x && x < (this->x + this->w)
-          && this->y <= y && y < (this->y + this->h);
+    bool contain(int x, int y) {
+        return this->x <= x && x < (this->x + this->w) && this->y <= y && y < (this->y + this->h);
     }
-    void resetCoords()
-    {
-      x=0;
-      y=0;
-      w=0;
-      h=0;
+    void resetCoords() {
+        x = 0;
+        y = 0;
+        w = 0;
+        h = 0;
     }
-    void setCoords(int x, int y, int w, int h)
-    {
-      this->x = x;
-      this->y = y;
-      this->w = w;
-      this->h = h;
+    void setCoords(int x, int y, int w, int h) {
+        this->x = x;
+        this->y = y;
+        this->w = w;
+        this->h = h;
     }
 };
 struct keyStroke { // DO NOT CHANGE IT!!!!!
-    bool pressed=false;
-    bool exit_key=false;
+    bool pressed = false;
+    bool exit_key = false;
     bool fn = false;
     bool del = false;
     bool enter = false;
@@ -57,7 +60,6 @@ struct keyStroke { // DO NOT CHANGE IT!!!!!
     std::vector<char> word;
     std::vector<uint8_t> hid_keys;
     std::vector<uint8_t> modifier_keys;
-    
 
     // Clear function
     void Clear() {
@@ -81,8 +83,8 @@ struct TouchPoint {
     // clear touch to better handle tasks
     void Clear(void) {
         pressed = false;
-        x=0;
-        y=0;
+        x = 0;
+        y = 0;
     }
 };
 
@@ -100,13 +102,13 @@ extern volatile bool EscPress;
 extern volatile bool AnyKeyPress;
 
 inline void resetGlobals(void) {
-    NextPress=false;
-    PrevPress=false;
-    UpPress=false;
-    DownPress=false;
-    SelPress=false;
-    EscPress=false;
-    AnyKeyPress=false;
+    NextPress = false;
+    PrevPress = false;
+    UpPress = false;
+    DownPress = false;
+    SelPress = false;
+    EscPress = false;
+    AnyKeyPress = false;
     touchPoint.Clear();
     KeyStroke.Clear();
 }
@@ -117,29 +119,29 @@ extern volatile uint16_t tftWidth;
 extern TaskHandle_t xHandle;
 extern inline bool check(volatile bool &btn) {
 #ifndef DONT_USE_INPUT_TASK
-  if(!btn) return false;
-  vTaskSuspend( xHandle );
-  btn=false;
-  AnyKeyPress=false;
-  delay(10);
-  vTaskResume( xHandle );
-  return true;
+    if (!btn) return false;
+    vTaskSuspend(xHandle);
+    btn = false;
+    AnyKeyPress = false;
+    delay(10);
+    vTaskResume(xHandle);
+    return true;
 #else
-static uint8_t count = 0;
-    if(count>5) { 
+    static uint8_t count = 0;
+    if (count > 5) {
         InputHandler();
         count = 0;
     }
     count++;
-    if(!btn) return false;
-    btn=false;
-    AnyKeyPress=false;
+    if (!btn) return false;
+    btn = false;
+    AnyKeyPress = false;
     return true;
 #endif
 }
 
-#define U_FAT_vfs 300 
-#define U_FAT_sys 400 
+#define U_FAT_vfs 300
+#define U_FAT_sys 400
 
 extern uint16_t FGCOLOR;
 extern uint16_t ALCOLOR;
@@ -162,21 +164,21 @@ extern int dimmerSet;
 extern int bright;
 extern bool dimmer;
 
-extern int prog_handler;    // 0 - Flash, 1 - SPIFFS, 2 - Download
+extern int prog_handler; // 0 - Flash, 1 - SPIFFS, 2 - Download
 
 extern bool sdcardMounted;
 
-extern std::vector<std::pair<std::string, std::function<void()>>> options;
+extern std::vector<std::pair<String, std::function<void()>>> options;
 
-extern  String ssid;
+extern String ssid;
 
-extern  String pwd;
+extern String pwd;
 
-extern  String wui_usr;
+extern String wui_usr;
 
-extern  String wui_pwd;
+extern String wui_pwd;
 
-extern  String dwn_path;
+extern String dwn_path;
 
 extern int currentIndex;
 
@@ -196,16 +198,16 @@ extern uint8_t buff[1024];
 
 extern const int bufSize;
 
-//Used to handle the update in webUI
+// Used to handle the update in webUI
 extern bool update;
 
-//Used to choose SPIFFS or not
+// Used to choose SPIFFS or not
 extern bool askSpiffs;
 
-//Don't let open OTA after use WebUI due t oRAM handling
+// Don't let open OTA after use WebUI due t oRAM handling
 extern bool stopOta;
 
-//size o the file in the webInterface
+// size o the file in the webInterface
 extern size_t file_size;
 
 #if defined(HEADLESS)

@@ -103,7 +103,7 @@ String wui_pwd = "launcher";
 String dwn_path = "/downloads/";
 JsonDocument doc;
 JsonDocument settings;
-std::vector<std::pair<std::string, std::function<void()>>> options;
+std::vector<std::pair<String, std::function<void()>>> options;
 const int bufSize = 1024;
 uint8_t buff[1024] = {0};
 

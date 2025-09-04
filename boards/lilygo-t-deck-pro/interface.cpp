@@ -10,6 +10,16 @@ BQ27220 bq;
 #include <XPowersLib.h>
 XPowersPPM PPM;
 
+#include <Adafruit_TCA8418.h>
+#define BOARD_I2C_ADDR_KEYBOARD 0x34
+#define KEYPAD_SDA 13
+#define KEYPAD_SCL 14
+#define KEYPAD_IRQ 15
+#define KEYPAD_ROWS 4
+#define KEYPAD_COLS 10
+
+Adafruit_TCA8418 *keyboard;
+
 #define BOARD_SDA 13
 #define BOARD_SCL 14
 #define TOUCH_INT 12
@@ -154,14 +164,14 @@ void _post_setup_gpio() {
     }
     Serial.print("Model :");
     Serial.println(touch.getModelName());
-    // touch.setMaxCoordinates(TFT_WIDTH, TFT_HEIGHT);
-    // touch.setSwapXY(true);
-    // touch.setMirrorXY(false, true);
-    //  Brightness control must be initialized after tft in this case @Pirata
-    // pinMode(TFT_BL,OUTPUT);
-    // ledcSetup(TFT_BRIGHT_CHANNEL,TFT_BRIGHT_FREQ, TFT_BRIGHT_Bits); //Channel 0, 10khz, 8bits
-    // ledcAttachPin(TFT_BL, TFT_BRIGHT_CHANNEL);
-    // ledcWrite(TFT_BRIGHT_CHANNEL,125);
+
+    keyboard = new Adafruit_TCA8418();
+    if (!keyboard->begin(BOARD_I2C_ADDR_KEYBOARD, &Wire)) {
+        Serial.println("keypad not found, check wiring & pullups!");
+    }
+    keyboard->matrix(KEYPAD_ROWS, KEYPAD_COLS);
+    // flush the internal buffer
+    keyboard->flush();
 }
 
 /***************************************************************************************
@@ -199,6 +209,111 @@ struct TouchPointPro {
     int16_t y = 0;
 };
 
+#define KB_ROWS 4
+#define KB_COLS 10
+#define KEYPAD_PRESS_VAL_MIN 129
+#define KEYPAD_PRESS_VAL_MAX 163
+#define KEYPAD_RELEASE_VAL_MIN 1
+#define KEYPAD_RELEASE_VAL_MAX 35
+
+#define SHIFT 0x80
+#define KEY_LEFT_CTRL 0x80
+#define KEY_LEFT_SHIFT 0x81
+#define KEY_LEFT_ALT 0x82
+#define KEY_OPT 0x00
+#define KEY_FN 0xff
+#define KEY_BACKSPACE 0x2a
+#define KEY_ENTER 0x28
+
+struct KeyValue_t {
+    const char value_first;
+    const char value_second;
+    const char value_third;
+};
+bool fn_key_pressed = false;
+bool shift_key_pressed = false;
+bool caps_lock = false;
+const KeyValue_t _key_value_map[KB_ROWS][KB_COLS] = {
+    {{'q', 'Q', '#'},
+     {'w', 'W', '1'},
+     {'e', 'E', '2'},
+     {'r', 'R', '3'},
+     {'t', 'T', '('},
+     {'y', 'Y', ')'},
+     {'u', 'U', '_'},
+     {'i', 'I', '-'},
+     {'o', 'O', '+'},
+     {'p', 'P', '@'}                                 },
+
+    {{'a', 'A', '*'},
+     {'s', 'S', '4'},
+     {'d', 'D', '5'},
+     {'f', 'F', '6'},
+     {'g', 'G', '/'},
+     {'h', 'H', ':'},
+     {'j', 'J', ';'},
+     {'k', 'K', '´'},
+     {'l', 'L', '"'},
+     {KEY_BACKSPACE, KEY_BACKSPACE, KEY_BACKSPACE}   },
+
+    {{KEY_LEFT_ALT, KEY_LEFT_ALT, KEY_LEFT_ALT},
+     {'z', 'Z', '7'},
+     {'x', 'X', '8'},
+     {'c', 'C', '9'},
+     {'v', 'V', '?'},
+     {'b', 'B', '!'},
+     {'n', 'N', ','},
+     {'m', 'M', '.'},
+     {'$', '0' /*Sound*/, '0' /*Sound*/},
+     {KEY_ENTER, KEY_ENTER, KEY_ENTER}               },
+
+    {{' ', ' ', ' '},
+     {' ', ' ', ' '},
+     {' ', ' ', ' '},
+     {' ', ' ', ' '},
+     {' ', ' ', ' '},
+     {KEY_LEFT_SHIFT, KEY_LEFT_SHIFT, KEY_LEFT_SHIFT},
+     {KEY_OPT, KEY_OPT, '0'},
+     {' ', ' ', ' '},
+     {KEY_FN, KEY_FN, KEY_FN},
+     {KEY_LEFT_SHIFT, KEY_LEFT_SHIFT, KEY_LEFT_SHIFT}}
+};
+
+char getKeyChar(uint8_t k) {
+    char keyVal;
+    if (fn_key_pressed) {
+        keyVal = _key_value_map[k / 10][(KEYPAD_COLS - 1) - k % 10].value_third;
+    } else if (shift_key_pressed ^ caps_lock) {
+        keyVal = _key_value_map[k / 10][(KEYPAD_COLS - 1) - k % 10].value_second;
+    } else {
+        keyVal = _key_value_map[k / 10][(KEYPAD_COLS - 1) - k % 10].value_first;
+    }
+    Serial.printf(
+        "Key pressed: %c (hex: 0x%02X, k=%d, fn=%d, shift=%d, caps=%d)\n",
+        keyVal,
+        (int)keyVal,
+        k,
+        fn_key_pressed,
+        shift_key_pressed,
+        caps_lock
+    );
+    return keyVal;
+}
+
+int handleSpecialKeys(uint8_t k, bool pressed) {
+    char keyVal = _key_value_map[k / 10][(KEYPAD_COLS - 1) - k % 10].value_first;
+    switch (keyVal) {
+        case KEY_FN: fn_key_pressed = !fn_key_pressed; return 1;
+        case KEY_LEFT_SHIFT: {
+            shift_key_pressed = pressed;
+            if (fn_key_pressed && shift_key_pressed) { caps_lock = !caps_lock; }
+            return 1;
+        }
+        default: break;
+    }
+    return 0;
+}
+
 /*********************************************************************
 ** Function: InputHandler
 ** Handles the variables PrevPress, NextPress, SelPress, AnyKeyPress and EscPress
@@ -232,6 +347,43 @@ void InputHandler(void) {
     END:
         yield();
     }
+
+    uint8_t keyValue = 0;
+    char keyVal = '\0';
+    if (keyboard->available() > 0) {
+        int keyValue = keyboard->getEvent();
+        int state = -1;
+        if (keyValue >= KEYPAD_RELEASE_VAL_MIN && keyValue <= KEYPAD_RELEASE_VAL_MAX) { // release event
+            keyValue = keyValue - KEYPAD_RELEASE_VAL_MIN;
+            state = 0;
+        }
+        if (keyValue >= KEYPAD_PRESS_VAL_MIN && keyValue <= KEYPAD_PRESS_VAL_MAX) { // press event
+            keyValue = keyValue - KEYPAD_PRESS_VAL_MIN;
+            state = 1; // pressed
+        }
+
+        if (state == -1) return;
+
+        if (handleSpecialKeys(keyValue, state) > 0) return;
+        keyVal = getKeyChar(keyValue);
+
+        if (keyVal != '\0') {
+            KeyStroke.Clear();
+            if (keyVal == KEY_BACKSPACE) {
+                KeyStroke.del = true;
+                EscPress = true;
+            } else if (keyVal == KEY_ENTER) {
+                KeyStroke.enter = true;
+                SelPress = true;
+            } else if (keyVal == KEY_FN) {
+                KeyStroke.fn = true;
+            } else {
+                KeyStroke.word.push_back(keyVal);
+                KeyStroke.pressed = true;
+            }
+            _tmptmp = millis();
+        }
+    } else KeyStroke.Clear();
 }
 
 /*********************************************************************

@@ -17,6 +17,13 @@ void _setup_gpio() {
     pinMode(DW_BTN, INPUT);
     pinMode(4, OUTPUT);    // Keeps the Stick alive after take off the USB cable
     digitalWrite(4, HIGH); // Keeps the Stick alive after take off the USB cable
+    // https://github.com/pr3y/Bruce/blob/main/media/connections/cc1101_stick_SDCard.jpg
+    // Keeps this pin high to allow working with the following pinout
+    // Keeps this pin high to allow working with the following pinout
+    pinMode(32, OUTPUT);
+    pinMode(33, OUTPUT);
+    digitalWrite(32, LOW);
+    digitalWrite(33, HIGH);
     gpio_pulldown_dis(GPIO_NUM_36);
     gpio_pullup_dis(GPIO_NUM_36);
 }

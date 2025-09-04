@@ -476,7 +476,7 @@ void progressHandler(int progress, size_t total) {
 #define MAX_MENU_SIZE (int)(tftHeight / 25)
 #endif
 Opt_Coord drawOptions(
-    int idx, const std::vector<std::pair<std::string, std::function<void()>>> &fileList,
+    int idx, const std::vector<std::pair<String, std::function<void()>>> &fileList,
     std::vector<MenuOptions> &opt, uint16_t fgcolor, uint16_t bgcolor
 ) {
     int index = idx;
@@ -841,7 +841,7 @@ Opt_Coord listFiles(int index, String fileList[][3], std::vector<MenuOptions> &o
             tft->setCursor(10, c_y);
 
 #ifdef HAS_TOUCH
-            if (start == i && show_page == 0) {
+            if (start == i) {
                 first_offset = 10 + 5 * LW * FM; // [ESC]
                 tft->setTextColor(ALCOLOR, BGCOLOR);
                 tft->print("[ESC]");
@@ -856,14 +856,24 @@ Opt_Coord listFiles(int index, String fileList[][3], std::vector<MenuOptions> &o
             if (index == i) {
                 optItem.selected = true;
                 txt = ">";
+#ifdef HAS_TOUCH
                 coord.x = 10 + FM * LW + (start == i ? 4 * FM * LW : 0);
-                coord.y = c_y;
                 coord.size = nchars - (start == i ? 4 : 0);
+#else
+                coord.x = 10 + FM * LW;
+                coord.size = nchars;
+#endif
+                coord.y = c_y;
+
                 coord.fgcolor = fileList[i][2] == "folder" ? FGCOLOR - 0x1111 : FGCOLOR;
                 coord.bgcolor = BGCOLOR;
             } else txt = " ";
             txt += fileList[i][0] + "                       ";
+#ifdef HAS_TOUCH
             tft->println(txt.substring(0, nchars - (start == i ? 6 : 0)));
+#else
+            tft->println(txt.substring(0, nchars));
+#endif
             opt.push_back(optItem);
             j++;
         }
@@ -895,7 +905,7 @@ Opt_Coord listFiles(int index, String fileList[][3], std::vector<MenuOptions> &o
 **  Function: loopOptions
 **  Where you choose among the options in menu
 **********************************************************************/
-void loopOptions(const std::vector<std::pair<std::string, std::function<void()>>> &options, bool bright) {
+void loopOptions(const std::vector<std::pair<String, std::function<void()>>> &options, bool bright) {
     bool redraw = true;
     bool exit = false;
     int index = 0;

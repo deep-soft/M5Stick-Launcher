@@ -69,7 +69,7 @@ void webUIMyNet() {
 **********************************************************************/
 void loopOptionsWebUi() {
     // Definição da matriz "Options"
-    std::vector<std::pair<std::string, std::function<void()>>> options = {
+    std::vector<std::pair<String, std::function<void()>>> options = {
         {"my Network", [=]() { webUIMyNet(); }                   },
         {"AP mode",    [=]() { startWebUi("Launcher", 0, true); }},
         {"Main Menu",  [=]() { returnToMenu = true; }            },

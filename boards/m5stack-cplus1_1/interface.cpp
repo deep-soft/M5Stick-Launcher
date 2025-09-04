@@ -10,7 +10,10 @@ AXP192 axp192;
 void _setup_gpio() {
     pinMode(SEL_BTN, INPUT);
     pinMode(DW_BTN, INPUT);
-    axp192.begin(); // Start the energy management of AXP192
+    // https://github.com/pr3y/Bruce/blob/main/media/connections/cc1101_stick_SDCard.jpg
+    pinMode(33, OUTPUT);    // Keeps this pin high to allow working with the following pinout
+    digitalWrite(33, HIGH); // Keeps this pin high to allow working with the following pinout
+    axp192.begin();         // Start the energy management of AXP192
 }
 
 /***************************************************************************************
