@@ -1,0 +1,63 @@
+name: Deploy to Pages
+
+on:
+  push:
+    branches: [WebPage]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Download release assets for website
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Delete all bin and json files and folders
+          rm -rf Beta Release
+          # Create the folders
+          mkdir -p Beta/bins Release/bins
+          # download the files from Releases
+          gh release download beta --dir ./Beta --clobber
+          gh release download last --dir ./Release --clobber
+          # move *.bin files to */bins folders
+          mv Beta/*.bin Beta/bins
+          mv Release/*.bin Release/bins
+
+      - name: Generate HTML and manifests from Boards
+        run: |
+          rm ./index.html
+          cp ./support_files/flasher.html ./index.html
+
+          # Using Beta because it will always have more board information for now
+          # Can lead to inconsistencies if try to flash a non released device
+          python ./support_files/merge_html.py ./index.html ./Beta/file.html
+
+          # In the future, have 2 lists, one for Beta and other for Latest, so latest flasher never breaks
+          # python ./support_files/merge_html.py ./index.html ./Beta/file.html "<!-- BETA_BOARDS -->"
+          # python ./support_files/merge_html.py ./index.html ./Release/file.html "<!-- LATEST_BOARDS -->"
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
