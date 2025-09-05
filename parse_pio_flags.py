@@ -45,4 +45,5 @@ if board:
 print('FLAGS=' + ';'.join(flags))
 print('LIBS=' + ';'.join(libs))
 print('TARGET=' + target)
-print('PARTITIONS=' + (partitions[0] if partitions else ''))
+part_file = os.path.basename(partitions[0]) if partitions else ''
+print('PARTITIONS=' + part_file)
