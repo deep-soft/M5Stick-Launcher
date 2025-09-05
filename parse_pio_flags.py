@@ -27,8 +27,10 @@ def expand(section, key):
             result.append(line)
     return result
 
-flags = expand(f'env:{env}', 'build_flags')
-libs = expand(f'env:{env}', 'lib_deps')
+base_flags = expand('env', 'build_flags')
+flags = base_flags + [f for f in expand(f'env:{env}', 'build_flags') if f not in base_flags]
+base_libs = expand('env', 'lib_deps')
+libs = base_libs + [l for l in expand(f'env:{env}', 'lib_deps') if l not in base_libs]
 partitions = expand(f'env:{env}', 'board_build.partitions')
 board = config.get(f'env:{env}', 'board', fallback='').strip()
 target = ''
