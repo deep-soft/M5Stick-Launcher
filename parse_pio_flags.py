@@ -44,6 +44,15 @@ if board:
         if isinstance(extra, str):
             extra = extra.split()
         flags.extend(extra)
+out_dir = os.path.join(root, 'build')
+os.makedirs(out_dir, exist_ok=True)
+with open(os.path.join(out_dir, 'pio_flags.json'), 'w') as f:
+    json.dump({
+        'flags': flags,
+        'libs': libs,
+        'target': target,
+        'partitions': os.path.basename(partitions[0]) if partitions else ''
+    }, f, indent=2)
 print('FLAGS=' + ';'.join(flags))
 print('LIBS=' + ';'.join(libs))
 print('TARGET=' + target)

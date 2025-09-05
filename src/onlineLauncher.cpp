@@ -413,7 +413,6 @@ void installFirmware(
     }
 #endif
 
-Sucesso:
     esp_restart();
 
 // Só chega aqui se der errado
