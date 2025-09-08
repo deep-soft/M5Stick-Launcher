@@ -1,9 +1,12 @@
 import configparser, glob, json, os, sys
+
 env = sys.argv[1]
+board_dir = sys.argv[2] if len(sys.argv) > 2 else env
+
 root = os.path.dirname(__file__)
-files = [os.path.join(root,'platformio.ini')]
-files += glob.glob(os.path.join(root,'boards','*.ini'))
-files += glob.glob(os.path.join(root,'boards','*','platformio.ini'))
+files = [os.path.join(root, 'platformio.ini')]
+files += glob.glob(os.path.join(root, 'boards', '*.ini'))
+files += glob.glob(os.path.join(root, 'boards', '*', 'platformio.ini'))
 config = configparser.ConfigParser(allow_no_value=True, delimiters=('='), interpolation=None)
 config.read(files)
 
@@ -44,6 +47,21 @@ if board:
         if isinstance(extra, str):
             extra = extra.split()
         flags.extend(extra)
+
+pinout = os.path.join(root, 'boards', 'pinouts', f'{board_dir}.h')
+if os.path.exists(pinout):
+    with open(pinout) as f:
+        for line in f:
+            line = line.strip()
+            if line.startswith('#define'):
+                parts = line.split()
+                if len(parts) >= 2:
+                    name = parts[1]
+                    value = parts[2] if len(parts) >= 3 else None
+                    if value is None:
+                        flags.append(f'-D{name}')
+                    else:
+                        flags.append(f'-D{name}={value}')
 out_dir = os.path.join(root, 'build')
 os.makedirs(out_dir, exist_ok=True)
 with open(os.path.join(out_dir, 'pio_flags.json'), 'w') as f:
