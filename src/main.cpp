@@ -464,7 +464,7 @@ void loop() {
 #endif
          [=]() { loopOptionsWebUi(); }
         },
-#ifdef ARDUINO_USB_MODE
+#if defined(ARDUINO_USB_MODE) && defined(USBMSC)
         {
 #if TFT_HEIGHT < 135
          "USB", "SD->USB",
