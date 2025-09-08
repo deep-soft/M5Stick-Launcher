@@ -8,6 +8,10 @@ dependencies:
     git: https://github.com/bblanchon/ArduinoJson.git
   XPowersLib:
     git: https://github.com/lewisxhe/XPowersLib.git
+  M5Unified:
+    git: https://github.com/m5stack/M5Unified.git
+  M5GFX:
+    git: https://github.com/m5stack/M5GFX.git
 idf_version: ">=5.5.1"
 options:
   skip_component_git_revision_check: true
