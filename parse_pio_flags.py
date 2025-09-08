@@ -37,6 +37,7 @@ libs = base_libs + [l for l in expand(f'env:{env}', 'lib_deps') if l not in base
 partitions = expand(f'env:{env}', 'board_build.partitions')
 board = config.get(f'env:{env}', 'board', fallback='').strip()
 target = ''
+sdk_lines = []
 if board:
     board_json = os.path.join(root, 'boards', '_jsonfiles', f'{board}.json')
     if os.path.exists(board_json):
@@ -47,6 +48,21 @@ if board:
         if isinstance(extra, str):
             extra = extra.split()
         flags.extend(extra)
+        flash_size = data.get('upload', {}).get('flash_size')
+        if flash_size:
+            sdk_lines.append(f'CONFIG_ESPTOOLPY_FLASHSIZE={flash_size}')
+        flash_mode = data.get('build', {}).get('flash_mode')
+        if flash_mode:
+            sdk_lines.append(f'CONFIG_ESPTOOLPY_FLASHMODE={flash_mode}')
+        f_flash = data.get('build', {}).get('f_flash')
+        if f_flash:
+            try:
+                mhz = int(str(f_flash).rstrip('L')) // 1000000
+                sdk_lines.append(f'CONFIG_ESPTOOLPY_FLASHFREQ={mhz}m')
+            except Exception:
+                pass
+        if target:
+            sdk_lines.append(f'CONFIG_IDF_TARGET="{target}"')
 
 pinout = os.path.join(root, 'boards', 'pinouts', f'{board_dir}.h')
 if os.path.exists(pinout):
@@ -76,3 +92,9 @@ print('LIBS=' + ';'.join(libs))
 print('TARGET=' + target)
 part_file = os.path.basename(partitions[0]) if partitions else ''
 print('PARTITIONS=' + part_file)
+sdk_path = ''
+if sdk_lines:
+    sdk_path = os.path.join(out_dir, 'pio_sdkconfig.defaults')
+    with open(sdk_path, 'w') as f:
+        f.write('\n'.join(sdk_lines) + '\n')
+print('SDKCONFIG=' + os.path.basename(sdk_path) if sdk_path else 'SDKCONFIG=')
