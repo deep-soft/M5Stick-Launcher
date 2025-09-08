@@ -1,4 +1,4 @@
-#ifdef ARDUINO_USB_MODE
+#if defined(ARDUINO_USB_MODE) && defined(USBMSC)
 
 #ifndef __MASS_STORAGE_H__
 #define __MASS_STORAGE_H__
@@ -53,4 +53,4 @@ bool usbStartStopCallback(uint8_t power_condition, bool start, bool load_eject);
 void drawUSBStickIcon(bool plugged);
 
 #endif // MASS_STORAGE_H
-#endif // ARDUINO_USB_MODE
+#endif // ARDUINO_USB_MODE && USBMSC

@@ -1,4 +1,4 @@
-#ifdef ARDUINO_USB_MODE
+#if defined(ARDUINO_USB_MODE) && defined(USBMSC)
 
 #include "massStorage.h"
 #include "display.h"
@@ -62,18 +62,27 @@ void MassStorage::setupUsbCallback() {
 }
 
 void MassStorage::setupUsbEvent() {
+#ifdef ARDUINO_USB_EVENTS
     USB.onEvent([](void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data) {
         if (event_base == ARDUINO_USB_EVENTS) {
-            auto *data = reinterpret_cast<arduino_usb_event_data_t *>(event_data);
             switch (event_id) {
+                #ifdef ARDUINO_USB_STARTED_EVENT
                 case ARDUINO_USB_STARTED_EVENT: drawUSBStickIcon(true); break;
+                #endif
+                #ifdef ARDUINO_USB_STOPPED_EVENT
                 case ARDUINO_USB_STOPPED_EVENT: drawUSBStickIcon(false); break;
+                #endif
+                #ifdef ARDUINO_USB_SUSPEND_EVENT
                 case ARDUINO_USB_SUSPEND_EVENT: MassStorage::displayMessage("USB suspend"); break;
+                #endif
+                #ifdef ARDUINO_USB_RESUME_EVENT
                 case ARDUINO_USB_RESUME_EVENT: MassStorage::displayMessage("USB resume"); break;
+                #endif
                 default: break;
             }
         }
     });
+#endif
 }
 
 void MassStorage::displayMessage(String message) {

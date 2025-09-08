@@ -50,15 +50,18 @@ if board:
         flags.extend(extra)
         flash_size = data.get('upload', {}).get('flash_size')
         if flash_size:
-            sdk_lines.append(f'CONFIG_ESPTOOLPY_FLASHSIZE={flash_size}')
+            sdk_lines.append(f'CONFIG_ESPTOOLPY_FLASHSIZE="{flash_size}"')
+            sdk_lines.append(f'CONFIG_ESPTOOLPY_FLASHSIZE_{flash_size}=y')
         flash_mode = data.get('build', {}).get('flash_mode')
         if flash_mode:
-            sdk_lines.append(f'CONFIG_ESPTOOLPY_FLASHMODE={flash_mode}')
+            sdk_lines.append(f'CONFIG_ESPTOOLPY_FLASHMODE="{flash_mode}"')
+            sdk_lines.append(f'CONFIG_ESPTOOLPY_FLASHMODE_{flash_mode.upper()}=y')
         f_flash = data.get('build', {}).get('f_flash')
         if f_flash:
             try:
                 mhz = int(str(f_flash).rstrip('L')) // 1000000
-                sdk_lines.append(f'CONFIG_ESPTOOLPY_FLASHFREQ={mhz}m')
+                sdk_lines.append(f'CONFIG_ESPTOOLPY_FLASHFREQ="{mhz}m"')
+                sdk_lines.append(f'CONFIG_ESPTOOLPY_FLASHFREQ_{mhz}M=y')
             except Exception:
                 pass
         if target:
@@ -68,16 +71,23 @@ pinout = os.path.join(root, 'boards', 'pinouts', f'{board_dir}.h')
 if os.path.exists(pinout):
     with open(pinout) as f:
         for line in f:
-            line = line.strip()
+            line = line.split('//',1)[0].strip()
             if line.startswith('#define'):
                 parts = line.split()
                 if len(parts) >= 2:
                     name = parts[1]
-                    value = parts[2] if len(parts) >= 3 else None
-                    if value is None:
+                    value = ' '.join(parts[2:]) if len(parts) >= 3 else None
+                    if not value:
                         flags.append(f'-D{name}')
                     else:
                         flags.append(f'-D{name}={value}')
+            elif line.startswith('static const uint8_t'):
+                line = line.replace(';', '')
+                parts = line.split()
+                if len(parts) >= 6 and parts[4] == '=':
+                    name = parts[3]
+                    value = parts[5]
+                    flags.append(f'-D{name}={value}')
 out_dir = os.path.join(root, 'build')
 os.makedirs(out_dir, exist_ok=True)
 with open(os.path.join(out_dir, 'pio_flags.json'), 'w') as f:
@@ -87,6 +97,7 @@ with open(os.path.join(out_dir, 'pio_flags.json'), 'w') as f:
         'target': target,
         'partitions': os.path.basename(partitions[0]) if partitions else ''
     }, f, indent=2)
+flags = [f.replace('"', '\"').replace("'", "") for f in flags]
 print('FLAGS=' + ';'.join(flags))
 print('LIBS=' + ';'.join(libs))
 print('TARGET=' + target)
