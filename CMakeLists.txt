@@ -44,6 +44,9 @@ if(PIO_FLAGS)
     endif()
   endforeach()
   file(WRITE ${CMAKE_BINARY_DIR}/applied_build_flags.log "${PIO_FLAGS}\n")
-  endif()
+endif()
 
-  project(Launcher)
+idf_build_set_property(C_COMPILE_OPTIONS "-include${CMAKE_SOURCE_DIR}/boards/pinouts/pins_arduino.h" APPEND)
+idf_build_set_property(CXX_COMPILE_OPTIONS "-include${CMAKE_SOURCE_DIR}/boards/pinouts/pins_arduino.h" APPEND)
+
+project(Launcher)

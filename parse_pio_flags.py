@@ -76,18 +76,24 @@ if os.path.exists(pinout):
                 parts = line.split()
                 if len(parts) >= 2:
                     name = parts[1]
+                    if name == 'Pins_Arduino_h':
+                        continue
                     value = ' '.join(parts[2:]) if len(parts) >= 3 else None
                     if not value:
                         flags.append(f'-D{name}')
                     else:
                         flags.append(f'-D{name}={value}')
-            elif line.startswith('static const uint8_t'):
-                line = line.replace(';', '')
-                parts = line.split()
-                if len(parts) >= 6 and parts[4] == '=':
-                    name = parts[3]
-                    value = parts[5]
-                    flags.append(f'-D{name}={value}')
+            # elif line.startswith('static const uint8_t'):
+            #     # pins_arduino.h exposes these as global variables; avoid converting to macros
+            #     line = line.replace(';', '')
+            #     parts = line.split()
+            #     if len(parts) >= 6 and parts[4] == '=':
+            #         name = parts[3]
+            #         value = parts[5]
+            #         flags.append(f'-D{name}={value}')
+
+# ensure standard Arduino pin definitions are available at build time
+# the pins_arduino.h header will be force-included via CMake compile options
 out_dir = os.path.join(root, 'build')
 os.makedirs(out_dir, exist_ok=True)
 with open(os.path.join(out_dir, 'pio_flags.json'), 'w') as f:
