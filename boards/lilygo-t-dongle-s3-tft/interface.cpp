@@ -1,8 +1,7 @@
 #include "powerSave.h"
+#include <Button.h>
 #include <SD_MMC.h>
 #include <interface.h>
-
-#include <Button.h>
 volatile bool nxtPress = false;
 volatile bool prvPress = false;
 volatile bool slPress = false;
@@ -19,8 +18,12 @@ Button *btn1;
 ***************************************************************************************/
 void _setup_gpio() {
     SD_MMC.setPins(PIN_SD_CLK, PIN_SD_CMD, PIN_SD_D0, PIN_SD_D1, PIN_SD_D2, PIN_SD_D3);
-    // PWM backlight setup
-    // setup buttons
+    //  PWM backlight setup
+    //  setup buttons
+    gpio_pulldown_dis(GPIO_NUM_21);
+    gpio_pullup_dis(GPIO_NUM_21);
+    gpio_pulldown_dis(GPIO_NUM_17);
+    gpio_pullup_dis(GPIO_NUM_17);
     button_config_t bt1 = {
         .type = BUTTON_TYPE_GPIO,
         .long_press_time = 600,
@@ -48,9 +51,8 @@ void _setup_gpio() {
 ***************************************************************************************/
 void _post_setup_gpio() {
     // PWM backlight setup
-    ledcSetup(TFT_BRIGHT_CHANNEL, TFT_BRIGHT_FREQ, TFT_BRIGHT_Bits); // Channel 0, 10khz, 8bits
-    ledcAttachPin(GFX_BL, TFT_BRIGHT_CHANNEL);
-    ledcWrite(TFT_BRIGHT_CHANNEL, 0);
+    ledcAttach(GFX_BL, TFT_BRIGHT_FREQ, TFT_BRIGHT_Bits);
+    ledcWrite(GFX_BL, 0);
 }
 
 /***************************************************************************************
@@ -71,11 +73,16 @@ void _setBrightness(uint8_t brightval) {
     else if (brightval == 75) dutyCycle = 5;
     else if (brightval == 50) dutyCycle = 20;
     else if (brightval == 25) dutyCycle = 135;
-    else if (brightval == 0) dutyCycle = 255;
-    else dutyCycle = 255 - ((brightval * 255) / 100);
+    else if (brightval == 0) dutyCycle = 250;
+    else dutyCycle = 250 - ((brightval * 250) / 100);
 
     Serial.printf("dutyCycle for bright 0-255: %d", dutyCycle);
-    ledcWrite(TFT_BRIGHT_CHANNEL, dutyCycle); // Channel 0
+    if (!ledcWrite(GFX_BL, dutyCycle)) {
+        Serial.println("Failed to set brightness");
+        ledcDetach(GFX_BL);
+        ledcAttach(GFX_BL, TFT_BRIGHT_FREQ, TFT_BRIGHT_Bits);
+        ledcWrite(GFX_BL, dutyCycle);
+    }
 }
 
 /*********************************************************************

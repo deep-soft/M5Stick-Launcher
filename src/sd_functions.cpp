@@ -2,8 +2,10 @@
 #include "display.h"
 #include "esp_log.h"
 #include "mykeyboard.h"
+#include <esp_flash.h>
+#include <esp_ota_ops.h>
+#include <esp_partition.h>
 #include <globals.h>
-
 SPIClass sdcardSPI;
 String fileToCopy;
 // Protected global variables
@@ -26,7 +28,7 @@ bool eraseFAT() {
     }
 
     // erase all FAT partition
-    err = spi_flash_erase_range(partition->address, partition->size);
+    err = esp_flash_erase_region(NULL, partition->address, partition->size);
     if (err != ESP_OK) {
         // log_e("Failed to erase partition: %s", esp_err_to_name(err));
         return false;
@@ -40,7 +42,7 @@ bool eraseFAT() {
     }
 
     // erase all FAT partition
-    err = spi_flash_erase_range(partition->address, partition->size);
+    err = esp_flash_erase_region(NULL, partition->address, partition->size);
     if (err != ESP_OK) { return false; }
 Exit:
     return true;
@@ -791,7 +793,7 @@ bool performFATUpdate(Stream &updateSource, size_t updateSize, const char *label
     paroffset = partition->address;
     log_i("Erasing updating: %s from: %d with size: %d", label, paroffset, updateSize);
 
-    error = spi_flash_erase_range(partition->address, updateSize);
+    error = esp_flash_erase_region(NULL, partition->address, updateSize);
     if (error != ESP_OK) {
         log_i("Erase error %d", error);
         return false;
@@ -803,7 +805,7 @@ bool performFATUpdate(Stream &updateSource, size_t updateSize, const char *label
 
     while (written < updateSize) { // updateSource.available() &&
         bytesRead = updateSource.readBytes(buffer2, sizeof(buffer2));
-        error = spi_flash_write(paroffset, buffer2, bytesRead);
+        error = esp_flash_write(NULL, buffer2, paroffset, bytesRead);
         if (error != ESP_OK) {
             log_i("[FLASH] Failed to write to flash (0x%x)", error);
             return false;

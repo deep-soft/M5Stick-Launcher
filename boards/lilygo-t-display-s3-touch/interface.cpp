@@ -4,12 +4,17 @@
 #include <interface.h>
 
 #define TOUCH_MODULES_CST_SELF
-#include <TouchLib.h>
+#include <TouchDrvCSTXXX.hpp>
 #include <Wire.h>
 #define LCD_MODULE_CMD_1
 
 #include <esp_adc_cal.h>
-TouchLib touch(Wire, 18, 17, CTS820_SLAVE_ADDRESS, 21);
+TouchDrvCSTXXX touch;
+struct TouchPointPro {
+    int16_t x = 0;
+    int16_t y = 0;
+};
+bool readTouch = false;
 
 #include <Button.h>
 volatile bool nxtPress = false;
@@ -42,9 +47,6 @@ void _setup_gpio() {
     delay(500);
     digitalWrite(21, HIGH); // PIN_TOUCH_RES
     Wire.begin(18, 17);     // SDA, SCL
-    if (!touch.init()) { Serial.println("Touch IC not found"); }
-
-    touch.setRotation(1);
     // PWM backlight setup
     // setup buttons
     button_config_t bt1 = {
@@ -89,9 +91,41 @@ void _setup_gpio() {
 ***************************************************************************************/
 void _post_setup_gpio() {
     // PWM backlight setup
-    ledcSetup(TFT_BRIGHT_CHANNEL, TFT_BRIGHT_FREQ, TFT_BRIGHT_Bits); // Channel 0, 10khz, 8bits
-    ledcAttachPin(TFT_BL, TFT_BRIGHT_CHANNEL);
-    ledcWrite(TFT_BRIGHT_CHANNEL, 255);
+    ledcAttach(TFT_BL, TFT_BRIGHT_FREQ, TFT_BRIGHT_Bits);
+    ledcWrite(TFT_BL, 250);
+
+    Serial.println("Prepraring Touchscreen");
+    touch.setPins(21, 16);
+    if (!touch.begin(Wire, CST328_SLAVE_ADDRESS, 18, 17)) {
+        Serial.println("Failed init CST328 Device!");
+        if (!touch.begin(Wire, CST816_SLAVE_ADDRESS, 18, 17)) {
+            Serial.println("Failed init CST816 Device!");
+        } else readTouch = true;
+    } else readTouch = true;
+    if (readTouch) {
+        // T-Display-S3 CST816 touch panel, touch button coordinates are is 85 , 160
+        touch.setCenterButtonCoordinate(85, 360);
+
+        // Depending on the touch panel, not all touch panels have touch buttons.
+        touch.setHomeButtonCallback(
+            [](void *user_data) {
+                static uint32_t checkMs = 0;
+                if (millis() > checkMs) {
+                    if (!wakeUpScreen()) {
+                        AnyKeyPress = true;
+                        EscPress = true;
+                    }
+                }
+                checkMs = millis() + 200;
+            },
+            NULL
+        );
+
+        // If you poll the touch, you need to turn off the automatic sleep function, otherwise there will be
+        // an I2C access error. If you use the interrupt method, you don't need to turn it off, saving power
+        // consumption
+        touch.disableAutoSleep();
+    }
 }
 
 /***************************************************************************************
@@ -100,20 +134,12 @@ void _post_setup_gpio() {
 ** Description:   Delivers the battery value from 1-100
 ***************************************************************************************/
 int getBattery() {
-    int percent = 0;
-    esp_adc_cal_characteristics_t adc_chars;
+    uint8_t percent;
+    uint32_t volt = 0;
+    // analogReadMilliVolts(GPIO_NUM_38);
 
-    // Get the internal calibration value of the chip
-    esp_adc_cal_value_t val_type =
-        esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_12, ADC_WIDTH_BIT_12, 1100, &adc_chars);
-    uint32_t raw = analogRead(BAT_PIN);
-    uint32_t v1 = esp_adc_cal_raw_to_voltage(raw, &adc_chars) * 2; // The partial pressure is one-half
-    if (v1 < 4300) {
-        float mv = v1 * 2;
-        percent = (mv - 3300) * 100 / (float)(4150 - 3350);
-    } else {
-        percent = 0;
-    }
+    float mv = volt;
+    percent = (mv - 3300) * 100 / (float)(4150 - 3350);
 
     return (percent < 0) ? 0 : (percent >= 100) ? 100 : percent;
 }
@@ -125,62 +151,34 @@ int getBattery() {
 **********************************************************************/
 void _setBrightness(uint8_t brightval) {
     int dutyCycle;
-    if (brightval == 100) dutyCycle = 255;
+    if (brightval == 100) dutyCycle = 250;
     else if (brightval == 75) dutyCycle = 130;
     else if (brightval == 50) dutyCycle = 70;
     else if (brightval == 25) dutyCycle = 20;
     else if (brightval == 0) dutyCycle = 5;
-    else dutyCycle = ((brightval * 255) / 100);
+    else dutyCycle = ((brightval * 250) / 100);
 
-    Serial.printf("dutyCycle for bright 0-255: %d", dutyCycle);
-    ledcWrite(TFT_BRIGHT_CHANNEL, dutyCycle); // Channel 0
+    Serial.printf("dutyCycle for bright 0-255: %d\n", dutyCycle);
+
+    vTaskDelay(10 / portTICK_PERIOD_MS);
+    if (!ledcWrite(TFT_BL, dutyCycle)) {
+        Serial.println("Failed to set brightness");
+        ledcDetach(TFT_BL);
+        ledcAttach(TFT_BL, TFT_BRIGHT_FREQ, TFT_BRIGHT_Bits);
+        ledcWrite(TFT_BL, dutyCycle);
+    }
 }
-
 /*********************************************************************
 ** Function: InputHandler
 ** Handles the variables PrevPress, NextPress, SelPress, AnyKeyPress and EscPress
 **********************************************************************/
 void InputHandler(void) {
     static long tm = millis();
+    static long tm2 = millis();
     static bool btn_pressed = false;
     if (nxtPress || prvPress || ecPress || slPress) btn_pressed = true;
 
-    if (millis() - tm > 200) {
-        if (touch.read() || LongPress) { // touch.tirqTouched() &&
-            auto t = touch.getPoint(0);
-            tm = millis();
-            if (rotation == 1) {
-                t.y = (tftHeight + 20) - t.y;
-                // t.x = tftWidth-t.x;
-            }
-            if (rotation == 3) {
-                // t.y = (tftHeight+20)-t.y;
-                t.x = tftWidth - t.x;
-            }
-            // Need to test the other orientations
-
-            if (rotation == 0) {
-                int tmp = t.x;
-                t.x = tftWidth - t.y;
-                t.y = tmp;
-            }
-            if (rotation == 2) {
-                int tmp = t.x;
-                t.x = t.y;
-                t.y = (tftHeight + 20) - tmp;
-            }
-
-            // Serial.printf("\nPressed x=%d , y=%d, rot: %d",t.x, t.y, rotation);
-
-            if (!wakeUpScreen()) AnyKeyPress = true;
-            else return;
-
-            // Touch point global variable
-            touchPoint.x = t.x;
-            touchPoint.y = t.y;
-            touchPoint.pressed = true;
-            touchHeatMap(touchPoint);
-        }
+    if (millis() - tm > 200 || LongPress) {
         if (btn_pressed) {
             btn_pressed = false;
             if (!wakeUpScreen()) AnyKeyPress = true;
@@ -194,6 +192,51 @@ void InputHandler(void) {
             prvPress = false;
             ecPress = false;
             slPress = false;
+        }
+        if (!readTouch) return; // dont have touchscreen
+        TouchPointPro t;
+        uint8_t touched = 0;
+        touched = touch.getPoint(&t.x, &t.y);
+
+        if (touched) {
+            // Serial.printf(
+            //     "\nPressed x=%d , y=%d, rot: %d, millis=%d, tmp=%d", t.x, t.y, rotation, millis(), tm
+            // );
+            tm = millis();
+            static uint8_t rot = 5;
+            if (rot != rotation) {
+                if (rotation == 1) {
+                    touch.setMaxCoordinates(320, 170);
+                    touch.setSwapXY(true);
+                    touch.setMirrorXY(false, true);
+                }
+                if (rotation == 3) {
+                    touch.setMaxCoordinates(320, 170);
+                    touch.setSwapXY(true);
+                    touch.setMirrorXY(true, false);
+                }
+                if (rotation == 0) {
+                    touch.setMaxCoordinates(170, 320);
+                    touch.setSwapXY(false);
+                    touch.setMirrorXY(false, true);
+                }
+                if (rotation == 2) {
+                    touch.setMaxCoordinates(170, 320);
+                    touch.setSwapXY(false);
+                    touch.setMirrorXY(true, false);
+                }
+                rot = rotation;
+            }
+            if (!wakeUpScreen()) AnyKeyPress = true;
+            else return;
+
+            // Touch point global variable
+            touchPoint.x = t.x;
+            touchPoint.y = t.y;
+            touchPoint.pressed = true;
+            touchHeatMap(touchPoint);
+            touched = 0;
+            return;
         }
     }
 }

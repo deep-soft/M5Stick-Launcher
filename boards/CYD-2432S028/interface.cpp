@@ -128,7 +128,9 @@ void _setup_gpio() {
     Wire.begin(TOUCH_SDA_PIN, TOUCH_SCL_PIN);
 #endif
 #if !defined(HAS_CAPACITIVE_TOUCH) && defined(CYD)
-    pinMode(33, OUTPUT);
+    pinMode(33, OUTPUT); // CS Pin
+#elif defined(CYDS3)
+    pinMode(38, OUTPUT); // CS Pin
 #endif
 }
 
@@ -140,8 +142,7 @@ void _setup_gpio() {
 void _post_setup_gpio() {
     // Brightness control must be initialized after tft in this case @Pirata
     pinMode(TFT_BL, OUTPUT);
-    ledcSetup(TFT_BRIGHT_CHANNEL, TFT_BRIGHT_FREQ, TFT_BRIGHT_Bits); // Channel 0, 10khz, 8bits
-    ledcAttachPin(TFT_BL, TFT_BRIGHT_CHANNEL);
+    ledcAttach(TFT_BL, TFT_BRIGHT_FREQ, TFT_BRIGHT_Bits);
     ledcWrite(TFT_BRIGHT_CHANNEL, 255);
 
     if (!touch.begin(
@@ -164,15 +165,20 @@ void _post_setup_gpio() {
 **********************************************************************/
 void _setBrightness(uint8_t brightval) {
     int dutyCycle;
-    if (brightval == 100) dutyCycle = 255;
+    if (brightval == 100) dutyCycle = 250;
     else if (brightval == 75) dutyCycle = 130;
     else if (brightval == 50) dutyCycle = 70;
     else if (brightval == 25) dutyCycle = 20;
     else if (brightval == 0) dutyCycle = 0;
-    else dutyCycle = ((brightval * 255) / 100);
+    else dutyCycle = ((brightval * 250) / 100);
 
     log_i("dutyCycle for bright 0-255: %d", dutyCycle);
-    ledcWrite(TFT_BRIGHT_CHANNEL, dutyCycle); // Channel 0
+    if (!ledcWrite(TFT_BL, dutyCycle)) {
+        Serial.println("Failed to set brightness");
+        ledcDetach(TFT_BL);
+        ledcAttach(TFT_BL, TFT_BRIGHT_FREQ, TFT_BRIGHT_Bits);
+        ledcWrite(TFT_BL, dutyCycle);
+    }
 }
 
 /*********************************************************************
