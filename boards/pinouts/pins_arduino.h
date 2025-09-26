@@ -1,5 +1,5 @@
 #ifdef CONFIG_IDF_TARGET_ESP32
-#include "esp32"
+#include "esp32.h"
 #elif CONFIG_IDF_TARGET_ESP32S3
 #include "esp32s3.h"
 #elif CONFIG_IDF_TARGET_ESP32P4
