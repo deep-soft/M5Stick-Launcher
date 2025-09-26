@@ -5,7 +5,7 @@
 #ifdef HEADLESS
 #include <VectorDisplay.h>
 #else
-#include <tft.h>
+#include <core/tft.h>
 #endif
 #include <ArduinoJson.h>
 #include <functional>

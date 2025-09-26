@@ -1,8 +1,8 @@
-#include "partitioner.h"
-#include "display.h"
+#include "util/partitioner.h"
+#include "core/display.h"
+#include "core/mykeyboard.h"
+#include "core/sd_functions.h"
 #include "esp_heap_caps.h"
-#include "mykeyboard.h"
-#include "sd_functions.h"
 #include <globals.h>
 
 // Define o tamanho da partição

@@ -1,10 +1,10 @@
 
-#include "settings.h"
-#include "display.h"
-#include "mykeyboard.h"
-#include "onlineLauncher.h"
-#include "partitioner.h"
-#include "sd_functions.h"
+#include "core/settings.h"
+#include "core/display.h"
+#include "core/mykeyboard.h"
+#include "core/sd_functions.h"
+#include "util/partitioner.h"
+#include "wifi/onlineLauncher.h"
 #include <globals.h>
 
 /**************************************************************************************

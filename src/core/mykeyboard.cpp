@@ -1,7 +1,7 @@
-#include "mykeyboard.h"
-#include "display.h"
-#include "powerSave.h"
-#include "settings.h"
+#include "core/mykeyboard.h"
+#include "core/display.h"
+#include "core/settings.h"
+#include "util/powerSave.h"
 #include <globals.h>
 
 /***************************************************************************************

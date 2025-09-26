@@ -210,11 +210,9 @@ extern bool stopOta;
 // size o the file in the webInterface
 extern size_t file_size;
 
-#if defined(HEADLESS)
 extern uint8_t _miso;
 extern uint8_t _mosi;
 extern uint8_t _sck;
 extern uint8_t _cs;
-#endif
 
 #endif

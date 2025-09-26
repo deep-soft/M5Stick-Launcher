@@ -1,9 +1,9 @@
-#include "onlineLauncher.h"
-#include "display.h"
-#include "mykeyboard.h"
-#include "powerSave.h"
-#include "sd_functions.h"
-#include "settings.h"
+#include "wifi/onlineLauncher.h"
+#include "core/display.h"
+#include "core/mykeyboard.h"
+#include "core/sd_functions.h"
+#include "core/settings.h"
+#include "util/powerSave.h"
 #include <globals.h>
 
 #if defined(M5STACK)

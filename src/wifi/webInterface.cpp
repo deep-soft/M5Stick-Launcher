@@ -1,11 +1,11 @@
 
-#include "webInterface.h"
-#include "display.h"
+#include "wifi/webInterface.h"
+#include "core/display.h"
+#include "core/mykeyboard.h"
+#include "core/sd_functions.h"
+#include "core/settings.h"
 #include "esp_task_wdt.h"
-#include "mykeyboard.h"
-#include "onlineLauncher.h"
-#include "sd_functions.h"
-#include "settings.h"
+#include "wifi/onlineLauncher.h"
 #include <globals.h>
 
 struct Config {
@@ -452,7 +452,6 @@ void configureWebServer() {
         if (checkUserWebAuth(request)) {
             if (request->hasParam("miso") && request->hasParam("mosi") && request->hasParam("sck") &&
                 request->hasParam("cs")) {
-#if defined(HEADLESS)
                 int miso = request->getParam("miso")->value().toInt();
                 int mosi = request->getParam("mosi")->value().toInt();
                 int sck = request->getParam("sck")->value().toInt();
@@ -481,9 +480,6 @@ void configureWebServer() {
                 request->send(200, "text/plain", "Pins configured.");
             error:
                 delay(1);
-#else
-        request->send(200, "text/plain", "Functionality exclusive for Headless environment (devices with no screen)");
-#endif
             }
         } else {
             return request->requestAuthentication();

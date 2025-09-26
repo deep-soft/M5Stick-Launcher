@@ -1,4 +1,4 @@
-#include "tft.h"
+#include "core/tft.h"
 
 #if defined(E_PAPER_DISPLAY) && !defined(GxEPD2_DISPLAY)
 

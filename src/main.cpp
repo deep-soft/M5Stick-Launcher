@@ -1,23 +1,21 @@
 #include <globals.h>
 
+#include "esp_ota_ops.h"
+#include "util/powerSave.h"
 #include <EEPROM.h>
 #include <HTTPClient.h>
-#include <WiFi.h>
-// #include <M5-HTTPUpdate.h>
-#if defined(HEADLESS)
-#include <VectorDisplay.h>
-#else
-#include <tft.h>
-#endif
-#include "esp_ota_ops.h"
 #include <SD.h>
 #include <SPIFFS.h>
-
-#include "powerSave.h"
+#include <WiFi.h>
 #include <functional>
 #include <iostream>
 #include <string>
 #include <vector>
+#if defined(HEADLESS)
+#include <VectorDisplay.h>
+#else
+#include <core/tft.h>
+#endif
 
 // Public Globals
 uint32_t MAX_SPIFFS = 0;
@@ -30,12 +28,10 @@ uint16_t BGCOLOR = BLACK;
 uint16_t odd_color = 0x30c5;
 uint16_t even_color = 0x32e5;
 
-#if defined(HEADLESS)
-uint8_t _miso = 0;
-uint8_t _mosi = 0;
-uint8_t _sck = 0;
-uint8_t _cs = 0;
-#endif
+uint8_t _miso = SDCARD_MISO < 0 ? 0 : SDCARD_MISO;
+uint8_t _mosi = SDCARD_MOSI < 0 ? 0 : SDCARD_MOSI;
+uint8_t _sck = SDCARD_SCK < 0 ? 0 : SDCARD_SCK;
+uint8_t _cs = SDCARD_CS < 0 ? 0 : SDCARD_CS;
 
 // Navigation Variables
 long LongPressTmp = 0;
@@ -107,14 +103,14 @@ std::vector<std::pair<String, std::function<void()>>> options;
 const int bufSize = 1024;
 uint8_t buff[1024] = {0};
 
-#include "display.h"
-#include "massStorage.h"
-#include "mykeyboard.h"
-#include "onlineLauncher.h"
-#include "partitioner.h"
-#include "sd_functions.h"
-#include "settings.h"
-#include "webInterface.h"
+#include "core/display.h"
+#include "core/mykeyboard.h"
+#include "core/sd_functions.h"
+#include "core/settings.h"
+#include "util/massStorage.h"
+#include "util/partitioner.h"
+#include "wifi/onlineLauncher.h"
+#include "wifi/webInterface.h"
 
 /*********************************************************************
 **  Function: get_partition_sizes
@@ -307,13 +303,11 @@ void setup() {
     pwd = EEPROM.readString(20);          // read what is on EEPROM here for headless environment
     ssid = EEPROM.readString(EEPROMSIZE); // read what is on EEPROM here for headless environment
 
-#if defined(HEADLESS)
-                                          // SD Pins
+    // SD Pins
     _miso = EEPROM.read(90);
     _mosi = EEPROM.read(91);
     _sck = EEPROM.read(92);
     _cs = EEPROM.read(93);
-#endif
 
     EEPROM.end();
 

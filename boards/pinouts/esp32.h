@@ -3,6 +3,10 @@
 
 #include <stdint.h>
 
+static const uint8_t LED_BUILTIN = 2;
+#define BUILTIN_LED LED_BUILTIN // backward compatibility
+#define LED_BUILTIN LED_BUILTIN // allow testing #ifdef LED_BUILTIN
+
 static const uint8_t TX = 1;
 static const uint8_t RX = 3;
 
@@ -44,7 +48,5 @@ static const uint8_t T9 = 32;
 
 static const uint8_t DAC1 = 25;
 static const uint8_t DAC2 = 26;
-
-#define HAS_5_BUTTONS
 
 #endif /* Pins_Arduino_h */

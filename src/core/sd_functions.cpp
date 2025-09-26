@@ -1,7 +1,7 @@
-#include "sd_functions.h"
-#include "display.h"
+#include "core/sd_functions.h"
+#include "core/display.h"
+#include "core/mykeyboard.h"
 #include "esp_log.h"
-#include "mykeyboard.h"
 #include <esp_flash.h>
 #include <esp_ota_ops.h>
 #include <esp_partition.h>
@@ -53,34 +53,23 @@ Exit:
 ** Description:   Start SD Card
 ***************************************************************************************/
 bool setupSdCard() {
+    bool result = true;
 #if !defined(SDM_SD) // fot Lilygo T-Display S3 with lilygo shield
-    if (!SD_MMC.begin("/sdcard", true))
-#elif (TFT_MOSI == SDCARD_MOSI)
-    if (!SDM.begin(SDCARD_CS)) // https://github.com/Bodmer/TFT_eSPI/discussions/2420
-#elif defined(HEADLESS)
+    if (!SD_MMC.begin("/sdcard", true)) result = false;
+#else
     if (_sck == 0 && _miso == 0 && _mosi == 0 && _cs == 0) {
         Serial.println("SdCard pins not set");
         return false;
     }
-
-    sdcardSPI.begin(_sck, _miso, _mosi, _cs); // start SPI communications
-    delay(10);
-    if (!SDM.begin(_cs, sdcardSPI))
-#elif defined(DONT_USE_INPUT_TASK)
-#if (TFT_MOSI != SDCARD_MOSI)
-    sdcardSPI.begin(SDCARD_SCK, SDCARD_MISO, SDCARD_MOSI, SDCARD_CS); // start SPI communications
-    if (!SDM.begin(SDCARD_CS, sdcardSPI))
-#else
-    if (!SDM.begin(SDCARD_CS))
+    if (_mosi == TFT_MOSI)
+        if (!SDM.begin(_cs)) result = false;
+        else {
+            sdcardSPI.begin(_sck, _miso, _mosi, _cs); // start SPI communications
+            delay(10);
+            if (!SDM.begin(_cs, sdcardSPI)) result = false;
+        }
 #endif
-
-#else
-    sdcardSPI.begin(SDCARD_SCK, SDCARD_MISO, SDCARD_MOSI, SDCARD_CS); // start SPI communications
-    delay(10);
-    if (!SDM.begin(SDCARD_CS, sdcardSPI))
-#endif
-    {
-        // sdcardSPI.end(); // Closes SPI connections and release pin header.
+    if (!result) {
         Serial.println("Failed to mount SDCARD");
         sdcardMounted = false;
         return false;

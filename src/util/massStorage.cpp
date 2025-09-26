@@ -1,8 +1,8 @@
 #ifdef ARDUINO_USB_MODE
 
-#include "massStorage.h"
-#include "display.h"
-#include "sd_functions.h"
+#include "util/massStorage.h"
+#include "core/display.h"
+#include "core/sd_functions.h"
 #include <USB.h>
 
 bool MassStorage::shouldStop = false;

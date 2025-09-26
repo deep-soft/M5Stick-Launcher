@@ -1,5 +1,5 @@
-#include "powerSave.h"
-#include "settings.h"
+#include "util/powerSave.h"
+#include "core/settings.h"
 
 /* Turn off the display */
 void turnOffDisplay() { setBrightness(0, false); }
