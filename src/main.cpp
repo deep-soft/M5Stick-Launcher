@@ -101,8 +101,8 @@ String pwd;
 String wui_usr = "admin";
 String wui_pwd = "launcher";
 String dwn_path = "/downloads/";
-JsonDocument doc;
-JsonDocument settings;
+DynamicJsonDocument doc(DOC_JSON_CAPACITY);
+DynamicJsonDocument settings(SETTINGS_JSON_CAPACITY);
 std::vector<std::pair<String, std::function<void()>>> options;
 const int bufSize = 1024;
 uint8_t buff[1024] = {0};
@@ -392,7 +392,7 @@ void setup() {
         }
 
         // Direct input check for startup - bypass check() function to avoid task suspension
-        if (SelPress || AnyKeyPress) {
+        if (check(SelPress)) {
             tft->fillScreen(BGCOLOR);
             goto Launcher;
         }
@@ -403,7 +403,7 @@ void setup() {
 #elif defined(STICK_C_PLUS2) || defined(STICK_C_PLUS)
         if (NextPress)
 #else
-        if (NextPress || PrevPress)
+        if (check(AnyKeyPress))
 #endif
         {
             tft->fillScreen(BLACK);

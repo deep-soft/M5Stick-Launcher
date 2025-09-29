@@ -6,6 +6,8 @@ Application Launcher for M5Stack, Lilygo, CYDs, Marauder and ESP32 devices.
     <img src="https://github.com/bmorcelli/Launcher/blob/main/M5Launcher.png?raw=true"> <img src="https://github.com/bmorcelli/Launcher/blob/main/New Launcher.jpg?raw=true" width="240" height="135"> <img src="https://github.com/bmorcelli/Launcher/blob/main/Launcher_anim.webp?raw=true" width="auto" height="135">
 </p>
 
+Join our [Discord community](https://discord.gg/BE9by2a2FF)
+
 ## How to Install
 * Use the Flasher: [Launcher Flasher](https://bmorcelli.github.io/Launcher/).
 * Use M5Burner, or
@@ -78,6 +80,22 @@ Things that needs to be done in next updates
 
 <details>
   <summary><h2>Changelog</h2></summary>
+
+* 2.5.3:
+     * [x] Restored T-Deck OTA
+     * [x] Refined T-Deck Touchscreen inputs
+
+* 2.5.2:
+     * [x] Fixed Marauder V6 touchscreen and CYDs touchscreen unresponsive [issue](https://github.com/bmorcelli/Launcher/issues/210) and fixed Dim screen
+     * [x] Fixed Marauder Mini and V7 screen dimming.
+     * [x] Fixed Smoochiee board inputs and SDCard [issue](https://github.com/bmorcelli/Launcher/issues/209)
+     * [x] Fixed Longpress on Cardputer ADV
+     * [x] Fixed folder creation on subfolders
+
+* 2.5.1:
+     * [x] Fixed Cardputer ADV Keyboard compatibility
+     * [x] Fixed issue where OTA firmware list wasn't being fully downloaded.
+
 * 2.5.0:
      * [x] Moving to pioarduino 3.3 based framework (ESP-IDF 5.5)
           * [x] Enable USB Mass Storage to SD_MMC devices (T-Display-S3 and touch and T-Dongle S3 tft)

@@ -3,6 +3,7 @@
 // further refference
 #ifndef GLOBALS_H
 #define GLOBALS_H
+#include "pins_arduino.h"
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <LittleFS.h> // to make M5GFX compile in Core, Core2 and CoreS3 devices
@@ -10,6 +11,8 @@
 #include <interface.h>
 #include <pre_compiler.h>
 #include <vector>
+inline constexpr size_t DOC_JSON_CAPACITY = 32768;
+inline constexpr size_t SETTINGS_JSON_CAPACITY = 8192;
 #if !defined(SDM)
 #define SDM SD
 #define SDM_SD
@@ -120,11 +123,8 @@ extern TaskHandle_t xHandle;
 extern inline bool check(volatile bool &btn) {
 #ifndef DONT_USE_INPUT_TASK
     if (!btn) return false;
-    vTaskSuspend(xHandle);
     btn = false;
     AnyKeyPress = false;
-    delay(10);
-    vTaskResume(xHandle);
     return true;
 #else
     static uint8_t count = 0;
@@ -182,9 +182,9 @@ extern String dwn_path;
 
 extern int currentIndex;
 
-extern JsonDocument doc;
+extern DynamicJsonDocument doc;
 
-extern JsonDocument settings;
+extern DynamicJsonDocument settings;
 
 extern String fileToCopy;
 
