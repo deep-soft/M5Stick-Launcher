@@ -21,7 +21,7 @@ extern Ard_eSPI *tft;
 #define FREE_TFT delete tft;
 
 void loopOptions(
-    const std::vector<std::pair<String, std::function<void()>>> &options, bool bright = false,
+    std::vector<Option> &options, bool bright = false, uint16_t al = RED, uint16_t bg = BLACK,
     bool border = true
 );
 void loopVersions();
@@ -59,11 +59,10 @@ struct Opt_Coord {
 };
 void displayScrollingText(const String &text, Opt_Coord &coord);
 
-// Opt_Coord drawOptions(int index,const std::vector<std::pair<String, std::function<void()>>>& options,
+// Opt_Coord drawOptions(int index,Option& options,
 // uint16_t fgcolor, uint16_t bgcolor);
 Opt_Coord drawOptions(
-    int index, const std::vector<std::pair<String, std::function<void()>>> &options,
-    std::vector<MenuOptions> &opt, uint16_t fgcolor, uint16_t bgcolor
+    int index, std::vector<Option> &options, std::vector<MenuOptions> &opt, uint16_t fgcolor, uint16_t bgcolor
 );
 
 void drawDeviceBorder();

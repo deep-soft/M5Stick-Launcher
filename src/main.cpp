@@ -107,7 +107,7 @@ uint8_t current_page = 1;
 uint8_t num_pages = 0;
 DynamicJsonDocument doc(DOC_JSON_CAPACITY);
 DynamicJsonDocument settings(SETTINGS_JSON_CAPACITY);
-std::vector<std::pair<String, std::function<void()>>> options;
+std::vector<Option> options;
 const int bufSize = 1024;
 uint8_t buff[1024] = {0};
 

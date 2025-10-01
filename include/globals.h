@@ -17,6 +17,20 @@ inline constexpr size_t SETTINGS_JSON_CAPACITY = 8192;
 #define SDM SD
 #define SDM_SD
 #endif
+
+#define NO_COLOR 1 // color is from 0x0000 (BLACK) to 0xffff (WHITE), 1 is for checking
+
+struct Option {
+    String label;
+    std::function<void()> operation;
+    uint16_t color;
+
+    Option(String lbl = "", const std::function<void()> &op = nullptr, uint16_t color = NO_COLOR)
+        : label(lbl), operation(op), color(color) {}
+};
+
+extern std::vector<Option> options;
+
 struct MenuOptions {
     String name;
     String text;
@@ -167,8 +181,6 @@ extern bool dimmer;
 extern int prog_handler; // 0 - Flash, 1 - SPIFFS, 2 - Download
 
 extern bool sdcardMounted;
-
-extern std::vector<std::pair<String, std::function<void()>>> options;
 
 extern String ssid;
 

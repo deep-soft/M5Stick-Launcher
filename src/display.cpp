@@ -470,8 +470,8 @@ void progressHandler(int progress, size_t total) {
 ** Description:   Função para desenhar e mostrar as opçoes de contexto
 ***************************************************************************************/
 Opt_Coord drawOptions(
-    int idx, const std::vector<std::pair<String, std::function<void()>>> &fileList,
-    std::vector<MenuOptions> &opt, uint16_t fgcolor, uint16_t bgcolor, bool border
+    int idx, std::vector<Option> &fileList, std::vector<MenuOptions> &opt, uint16_t fgcolor, uint16_t bgcolor,
+    bool border
 ) {
     int index = idx;
 #ifdef E_PAPER_DISPLAY
@@ -587,6 +587,8 @@ Opt_Coord drawOptions(
     while (i < arraySize && j < visibleCount) {
         if (i >= start) {
             uint16_t c_y = tft->getCursorY() + 4;
+            uint16_t color = fileList[i].color;
+            if (color == NO_COLOR) color = fgcolor;
             MenuOptions optItem = MenuOptions(
                 String(i),
                 "",
@@ -599,16 +601,18 @@ Opt_Coord drawOptions(
                 FM * LH + 4
             );
             tft->setCursor(tftWidth * 0.1 * border, c_y);
+
             if (index == i) {
                 optItem.selected = true;
                 txt = ">";
                 coord.x = tftWidth * 0.1 * border + FM * LW;
                 coord.y = c_y;
                 coord.size = nchars;
-                coord.fgcolor = fgcolor;
+                coord.fgcolor = color;
                 coord.bgcolor = bgcolor;
             } else txt = " ";
-            txt += String(fileList[i].first.c_str()) + "                       ";
+            txt += String(fileList[i].label) + "                       ";
+            tft->setTextColor(color, bgcolor);
             tft->println(txt.substring(0, nchars));
             // Serial.println(txt.substring(0,nchars));
             //  tft->drawRect(optItem.x,optItem.y,optItem.w,optItem.h,BLUE); // debug purpose
@@ -913,9 +917,7 @@ Opt_Coord listFiles(int index, String fileList[][3], std::vector<MenuOptions> &o
 **  Function: loopOptions
 **  Where you choose among the options in menu
 **********************************************************************/
-void loopOptions(
-    const std::vector<std::pair<String, std::function<void()>>> &options, bool bright, bool border
-) {
+void loopOptions(std::vector<Option> &options, bool bright, uint16_t al, uint16_t bg, bool border) {
     bool redraw = true;
     bool exit = false;
     int index = 0;
@@ -929,7 +931,7 @@ void loopOptions(
     while (1) {
         if (redraw) {
             list = {};
-            coord = drawOptions(index, options, list, ALCOLOR, BGCOLOR, border);
+            coord = drawOptions(index, options, list, al, bg, border);
             max_idx = 0;
             min_idx = MAXFILES;
             int tmp = 0;
@@ -944,7 +946,7 @@ void loopOptions(
             if (bright) { setBrightness(100 * (numOpt - index) / numOpt, false); }
             redraw = false;
         }
-        String txt = options[index].first.c_str();
+        String txt = options[index].label;
         displayScrollingText(txt, coord);
 
 #if defined(T_EMBED) || defined(HAS_TOUCH) || defined(HAS_KEYBOARD)
@@ -1024,7 +1026,7 @@ void loopOptions(
 
         /* Select and run function */
         if (check(SelPress)) {
-            options[index].second();
+            options[index].operation();
             break;
         }
 
@@ -1218,118 +1220,126 @@ RESTART:
         if (page == 1) items = total_firmware;
         else items = total_firmware - items * (page - 1);
     }
-    options.push_back({"[Refine Search]", [=]() {
-                           // Adicionar menu para escolher novos filtros
-                           displayRedStripe("Not Available yet");
-                           vTaskDelay(2000 / portTICK_PERIOD_MS);
-                           returnToMenu = false;
-                       }});
+    options.push_back(
+        {"[Refine Search]",
+         [=]() {
+             // Adicionar menu para escolher novos filtros
+             displayRedStripe("Not Available yet");
+             vTaskDelay(2000 / portTICK_PERIOD_MS);
+             returnToMenu = false;
+         },
+         ALCOLOR}
+    );
+
     if (current_page > 1) {
         // Volta uma página
-        options.push_back({"[Previous Page]", [=]() { current_page -= 1; }});
+        options.push_back({"[Previous Page]", [=]() { current_page -= 1; }, ALCOLOR});
     }
     for (int i = 0; i < items; i++) {
+        bool star = doc["items"][i]["star"].as<bool>();
         String txt =
             doc["items"][i]["name"].as<String>() + " (" + doc["items"][i]["author"].as<String>() + ")";
-        options.push_back({txt, [=]() { currentIndex = i; }});
+        options.push_back(
+            {txt, [=]() { currentIndex = i; }, star ? getComplementaryColor(FGCOLOR) : FGCOLOR}
+        );
     };
     if (total_firmware > doc["page_size"].as<int>() * current_page) {
         // Avança uma pagina
-        options.push_back({"[Next Page]", [=]() { current_page += 1; }});
+        options.push_back({"[Next Page]", [=]() { current_page += 1; }, ALCOLOR});
     }
-    options.push_back({"[Main Menu]", [=]() { returnToMenu = true; }});
-    loopOptions(options, false, false);
+    options.push_back({"[Main Menu]", [=]() { returnToMenu = true; }, ALCOLOR});
+    loopOptions(options, false, FGCOLOR, BGCOLOR, false);
     if (currentIndex >= 0) loopVersions();
 
     if (!returnToMenu) goto RESTART;
 }
 
-void loopFirmware_old() {
-    LongPressTmp = millis();
-    currentIndex = 0;
-    displayCurrentItem(doc, currentIndex);
+// void loopFirmware() {
+//     LongPressTmp = millis();
+//     currentIndex = 0;
+//     displayCurrentItem(doc, currentIndex);
 
-    while (1) {
-        if (WiFi.status() == WL_CONNECTED) {
-            /* UP Btn go to previous item */
-            if (check(PrevPress)) {
-                if (currentIndex == 0) currentIndex = total_firmware - 1;
-                else if (currentIndex > 0) currentIndex--;
-                displayCurrentItem(doc, currentIndex);
-#ifdef E_PAPER_DISPLAY
-                tft->display(false);
-                delay(200);
-#endif
-            }
-            /* DW Btn to next item */
-            if (check(NextPress)) {
-                currentIndex++;
-                if ((currentIndex + 1) > total_firmware) currentIndex = 0;
-                displayCurrentItem(doc, currentIndex);
-#ifdef E_PAPER_DISPLAY
-                tft->display(false);
-                delay(200);
-#endif
-            }
+//     while (1) {
+//         if (WiFi.status() == WL_CONNECTED) {
+//             /* UP Btn go to previous item */
+//             if (check(PrevPress)) {
+//                 if (currentIndex == 0) currentIndex = total_firmware - 1;
+//                 else if (currentIndex > 0) currentIndex--;
+//                 displayCurrentItem(doc, currentIndex);
+// #ifdef E_PAPER_DISPLAY
+//                 tft->display(false);
+//                 delay(200);
+// #endif
+//             }
+//             /* DW Btn to next item */
+//             if (check(NextPress)) {
+//                 currentIndex++;
+//                 if ((currentIndex + 1) > total_firmware) currentIndex = 0;
+//                 displayCurrentItem(doc, currentIndex);
+// #ifdef E_PAPER_DISPLAY
+//                 tft->display(false);
+//                 delay(200);
+// #endif
+//             }
 
-// Checks for long press to get back to Main Menu, only for StickCs.. Cardputer uses Esc btn
-#if defined(T_EMBED) || defined(HAS_TOUCH) || defined(HAS_KEYBOARD)
-            /* Select to install */
-            if (check(SelPress)) {
-                loopVersions();
-                delay(200);
-                returnToMenu = false;
-            }
-#else
-            if (LongPress || SelPress) {
-                if (!LongPress) {
-                    LongPress = true;
-                    LongPressTmp = millis();
-                }
-                if (LongPress && millis() - LongPressTmp < 250) goto WAITING;
-                LongPress = false;
-                if (check(SelPress)) {
-                    bool exit = false;
-                    options = {
-                        {"View version", [=]() { loopVersions(); }},
-                        {"Main Menu",    [&]() { exit = true; }   }
-                    };
-                    loopOptions(options);
-                    returnToMenu = false;
-                    if (exit) {
-                        returnToMenu = true;
-                        goto END;
-                    }
-                    displayCurrentItem(doc, currentIndex);
-                    delay(200);
-                } else {
-                    check(SelPress);
-                    loopVersions(); // goes to the Version information
-                    displayCurrentItem(doc, currentIndex);
-                    delay(200);
-                    returnToMenu = false;
-                }
-            }
-        WAITING:
-            yield();
-#endif
+// // Checks for long press to get back to Main Menu, only for StickCs.. Cardputer uses Esc btn
+// #if defined(T_EMBED) || defined(HAS_TOUCH) || defined(HAS_KEYBOARD)
+//             /* Select to install */
+//             if (check(SelPress)) {
+//                 loopVersions();
+//                 delay(200);
+//                 returnToMenu = false;
+//             }
+// #else
+//             if (LongPress || SelPress) {
+//                 if (!LongPress) {
+//                     LongPress = true;
+//                     LongPressTmp = millis();
+//                 }
+//                 if (LongPress && millis() - LongPressTmp < 250) goto WAITING;
+//                 LongPress = false;
+//                 if (check(SelPress)) {
+//                     bool exit = false;
+//                     options = {
+//                         {"View version", [=]() { loopVersions(); }},
+//                         {"Main Menu",    [&]() { exit = true; }   }
+//                     };
+//                     loopOptions(options);
+//                     returnToMenu = false;
+//                     if (exit) {
+//                         returnToMenu = true;
+//                         goto END;
+//                     }
+//                     displayCurrentItem(doc, currentIndex);
+//                     delay(200);
+//                 } else {
+//                     check(SelPress);
+//                     loopVersions(); // goes to the Version information
+//                     displayCurrentItem(doc, currentIndex);
+//                     delay(200);
+//                     returnToMenu = false;
+//                 }
+//             }
+//         WAITING:
+//             yield();
+// #endif
 
-#if defined(T_EMBED) || defined(HAS_TOUCH) || defined(HAS_KEYBOARD)
-            if (check(EscPress)) break; //  Esc btn to get back to Main Menu.
-#endif
+// #if defined(T_EMBED) || defined(HAS_TOUCH) || defined(HAS_KEYBOARD)
+//             if (check(EscPress)) break; //  Esc btn to get back to Main Menu.
+// #endif
 
-            if (returnToMenu) break; // break the loop and gets back to Main Menu
-        } else {
-            displayRedStripe("WiFi: Disconnected");
-            delay(5000);
-            break;
-        }
-    }
-END:
-    WiFi.disconnect(true, true);
-    WiFi.mode(WIFI_OFF);
-    doc.clear();
-}
+//             if (returnToMenu) break; // break the loop and gets back to Main Menu
+//         } else {
+//             displayRedStripe("WiFi: Disconnected");
+//             delay(5000);
+//             break;
+//         }
+//     }
+// END:
+//     WiFi.disconnect(true, true);
+//     WiFi.mode(WIFI_OFF);
+//     doc.clear();
+// }
 
 /*********************************************************************
 **  Function: tftprintln
