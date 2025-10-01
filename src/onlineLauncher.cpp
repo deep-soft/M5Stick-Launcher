@@ -173,11 +173,11 @@ String replaceChars(String input) {
     return input;
 }
 
-bool getInfo(const char *serverUrl, JsonDocument &_doc) {
+bool getInfo(String serverUrl, JsonDocument &_doc) {
     if (WiFi.status() == WL_CONNECTED) {
         vTaskSuspend(xHandle);
-        WiFiClientSecure client;
-        client.setInsecure();
+        WiFiClientSecure *client = new WiFiClientSecure();
+        client->setInsecure();
         HTTPClient http;
         resetTftDisplay(tftWidth / 2 - 6 * String("Getting info from").length(), 32);
         tft->fillRoundRect(6, 6, tftWidth - 12, tftHeight - 12, 5, BGCOLOR);
@@ -188,7 +188,7 @@ bool getInfo(const char *serverUrl, JsonDocument &_doc) {
         tft->setCursor(18, tftHeight / 3 + FM * 9 * 2);
         const uint8_t maxAttempts = 5;
         for (uint8_t attempt = 0; attempt < maxAttempts; ++attempt) {
-            if (!http.begin(client, serverUrl)) {
+            if (!http.begin(*client, serverUrl)) {
                 Serial.printf("[GetInfo] Unable to reach %s\n", serverUrl);
                 break;
             }
@@ -231,8 +231,7 @@ bool GetJsonFromLauncherHub(uint8_t page, String order, bool star, String query)
     q += page > 1 ? "&page=" + String(page) : "";
     q += query.length() > 0 ? "&q=" + String(query) : "";
     q += star ? "&star=1" : "";
-    const char *serverUrl =
-        String("https://api.launcherhub.net/firmwares?category=" + String(OTA_TAG) + q).c_str();
+    String serverUrl = "https://api.launcherhub.net/firmwares?category=" + String(OTA_TAG) + q;
 
     if (getInfo(serverUrl, doc)) {
         total_firmware = doc["total"].as<int>();
@@ -247,7 +246,7 @@ bool GetJsonFromLauncherHub(uint8_t page, String order, bool star, String query)
 }
 JsonDocument getVersionInfo(String fid) {
     JsonDocument versions;
-    const char *serverUrl = String("https://api.launcherhub.net/firmwares?fid=" + fid).c_str();
+    String serverUrl = "https://api.launcherhub.net/firmwares?fid=" + fid;
     if (!getInfo(serverUrl, versions)) {
         displayRedStripe("Version fetch Failed");
         vTaskDelay(1500 / portTICK_PERIOD_MS);
@@ -259,7 +258,8 @@ JsonDocument getVersionInfo(String fid) {
 ** Description:   Downloads the firmware and save into the SDCard
 ***************************************************************************************/
 void downloadFirmware(String fid, String file, String fileName, String folder) { // Adicionar "fid"
-    String fileAddr = "http://api.launcherhub.net/download?fid=" + fid + "&file=" + file;
+    if (!file.startsWith("https://")) file = M5_SERVER_PATH + file;
+    String fileAddr = "https://api.launcherhub.net/download?fid=" + fid + "&file=" + file;
     if (fid == "") fileAddr = file;
     int tries = 0;
     fileName = replaceChars(fileName);
@@ -371,7 +371,8 @@ void installFirmware( // adicionar "fid"
     bool fat, uint32_t fat_offset[2], uint32_t fat_size[2]
 ) {
     uint32_t app_offset = 0x10000;
-    String fileAddr = "http://api.launcherhub.net/download?fid=" + fid + "&file=" + file;
+    if (!file.startsWith("https://")) file = M5_SERVER_PATH + file;
+    String fileAddr = "https://api.launcherhub.net/download?fid=" + fid + "&file=" + file;
     if (fid == "") fileAddr = file;
 
     // Release RAM Memory from Json Objects
@@ -419,8 +420,7 @@ void installFirmware( // adicionar "fid"
     }
 
     // Do not request to api.launcherhub.net a second time, go straight to the file
-    if (!file.startsWith("https://")) file = M5_SERVER_PATH + file;
-
+    // Requests must be done to "file" link directly
     if (spiffs) {
         prog_handler = 1;
         tft->fillRect(5, 60, tftWidth - 10, 16, ALCOLOR);

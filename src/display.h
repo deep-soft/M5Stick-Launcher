@@ -20,7 +20,10 @@ extern Ard_eSPI *tft;
 
 #define FREE_TFT delete tft;
 
-void loopOptions(const std::vector<std::pair<String, std::function<void()>>> &options, bool bright = false);
+void loopOptions(
+    const std::vector<std::pair<String, std::function<void()>>> &options, bool bright = false,
+    bool border = true
+);
 void loopVersions();
 void loopFirmware();
 void initDisplay(bool doAll = false); // Início da função e mostra bootscreen

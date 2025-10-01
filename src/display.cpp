@@ -469,22 +469,21 @@ void progressHandler(int progress, size_t total) {
 ** Function name: drawOptions
 ** Description:   Função para desenhar e mostrar as opçoes de contexto
 ***************************************************************************************/
-#if defined(E_PAPER_DISPLAY) && !defined(GxEPD2_DISPLAY)
-#define MAX_MENU_SIZE 13
-#define FONT_S (FM * (LH + 3) + 4)
-#else
-#define FONT_S (FM * LH + 4)
-#define MAX_MENU_SIZE (int)(tftHeight / 25)
-#endif
 Opt_Coord drawOptions(
     int idx, const std::vector<std::pair<String, std::function<void()>>> &fileList,
-    std::vector<MenuOptions> &opt, uint16_t fgcolor, uint16_t bgcolor
+    std::vector<MenuOptions> &opt, uint16_t fgcolor, uint16_t bgcolor, bool border
 ) {
     int index = idx;
 #ifdef E_PAPER_DISPLAY
     tft->stopCallback();
 #endif
-
+#if defined(E_PAPER_DISPLAY) && !defined(GxEPD2_DISPLAY)
+    int MAX_MENU_SIZE = 13;
+    int FONT_S = (FM * (LH + 3) + 4);
+#else
+    int FONT_S = (FM * LH + 4);
+    int MAX_MENU_SIZE = (int)(tftHeight / 25) + !border;
+#endif
     Opt_Coord coord;
     opt.clear();
     int arraySize = fileList.size();
@@ -535,9 +534,9 @@ Opt_Coord drawOptions(
                 // Serial.printf("ini: %d, end: %d\n", ini, end);
                 if (index == ini || i != show_page)
                     tft->fillRoundRect(
-                        tftWidth * 0.10,
+                        tftWidth * 0.10 * border,
                         tftHeight / 2 - visibleCount * FONT_S / 2 - 5,
-                        tftWidth * 0.8,
+                        tftWidth * (border ? 0.8 : 1),
                         FONT_S * visibleCount + 10,
                         5,
                         bgcolor
@@ -548,16 +547,16 @@ Opt_Coord drawOptions(
         }
     } else if (index == 0) {
         tft->fillRoundRect(
-            tftWidth * 0.10 + 1,
+            tftWidth * 0.10 * border + 1,
             tftHeight / 2 - visibleCount * FONT_S / 2 - 4,
-            tftWidth * 0.8 - 2,
+            tftWidth * (border ? 0.8 : 1) - 2,
             FONT_S * visibleCount + 8,
             5,
             bgcolor
         );
     }
 
-    int nchars = (tftWidth * 0.8 - 10) / (LW * FM) - 1;
+    int nchars = (tftWidth * (border ? 0.8 : 1) - 10 * border) / (LW * FM) - 1;
     String txt = ">";
     int j = 0;
     int i = 0;
@@ -565,7 +564,7 @@ Opt_Coord drawOptions(
 
     tft->setTextColor(fgcolor, bgcolor);
     tft->setTextSize(FM);
-    tft->setCursor(tftWidth * 0.10 + 5, tftHeight / 2 - visibleCount * FONT_S / 2);
+    tft->setCursor(tftWidth * 0.10 * border + 5, tftHeight / 2 - visibleCount * FONT_S / 2);
 
 #ifdef HAS_TOUCH
     if (show_page == 0 && num_pages > 1) {
@@ -589,13 +588,21 @@ Opt_Coord drawOptions(
         if (i >= start) {
             uint16_t c_y = tft->getCursorY() + 4;
             MenuOptions optItem = MenuOptions(
-                String(i), "", nullptr, true, false, tftWidth * 0.1, c_y - 4, tftWidth * 0.8, FM * LH + 4
+                String(i),
+                "",
+                nullptr,
+                true,
+                false,
+                tftWidth * 0.1 * border,
+                c_y - 4,
+                tftWidth * (border ? 0.8 : 1),
+                FM * LH + 4
             );
-            tft->setCursor(tftWidth * 0.1, c_y);
+            tft->setCursor(tftWidth * 0.1 * border, c_y);
             if (index == i) {
                 optItem.selected = true;
                 txt = ">";
-                coord.x = tftWidth * 0.1 + FM * LW;
+                coord.x = tftWidth * 0.1 * border + FM * LW;
                 coord.y = c_y;
                 coord.size = nchars;
                 coord.fgcolor = fgcolor;
@@ -625,9 +632,9 @@ Opt_Coord drawOptions(
     }
 #endif
     tft->drawRoundRect(
-        tftWidth * 0.10,
+        tftWidth * 0.10 * border,
         tftHeight / 2 - visibleCount * FONT_S / 2 - 5,
-        tftWidth * 0.8,
+        tftWidth * (border ? 0.8 : 1),
         FONT_S * visibleCount + 10,
         5,
         fgcolor
@@ -906,7 +913,9 @@ Opt_Coord listFiles(int index, String fileList[][3], std::vector<MenuOptions> &o
 **  Function: loopOptions
 **  Where you choose among the options in menu
 **********************************************************************/
-void loopOptions(const std::vector<std::pair<String, std::function<void()>>> &options, bool bright) {
+void loopOptions(
+    const std::vector<std::pair<String, std::function<void()>>> &options, bool bright, bool border
+) {
     bool redraw = true;
     bool exit = false;
     int index = 0;
@@ -920,7 +929,7 @@ void loopOptions(const std::vector<std::pair<String, std::function<void()>>> &op
     while (1) {
         if (redraw) {
             list = {};
-            coord = drawOptions(index, options, list, ALCOLOR, BGCOLOR);
+            coord = drawOptions(index, options, list, ALCOLOR, BGCOLOR, border);
             max_idx = 0;
             min_idx = MAXFILES;
             int tmp = 0;
@@ -1169,7 +1178,10 @@ void loopVersions() {
                 {"Download->SD",
                  [=]() {
                      downloadFirmware(
-                         String(file), String(name) + "." + String(version).substring(0, 10), dwn_path
+                         String(fid),
+                         String(file),
+                         String(name) + "." + String(version).substring(0, 10),
+                         dwn_path
                      );
                  }                                             },
                 {"Back to List", [=]() { returnToMenu = true; }},
@@ -1192,6 +1204,45 @@ SAIR:
 **  Where you choose which Firmware to see more data
 **********************************************************************/
 void loopFirmware() {
+    int _page = current_page;
+RESTART:
+    currentIndex = -1;
+    if (_page != current_page) {
+        // Adicionar outros filtros
+        GetJsonFromLauncherHub(current_page);
+    }
+    options = {};
+    int items = doc["page_size"].as<int>();
+    int page = doc["page"].as<int>();
+    if (total_firmware < (page * items)) {
+        if (page == 1) items = total_firmware;
+        else items = total_firmware - items * (page - 1);
+    }
+    options.push_back({"[Refine Search]", [=]() {
+                           // Adicionar menu para escolher novos filtros
+                           returnToMenu = false;
+                       }});
+    if (current_page > 1) {
+        // Volta uma página
+        options.push_back({"[Previous Page]", [=]() { current_page -= 1; }});
+    }
+    for (int i = 0; i < items; i++) {
+        String txt =
+            doc["items"][i]["name"].as<String>() + " (" + doc["items"][i]["author"].as<String>() + ")";
+        options.push_back({txt, [=]() { currentIndex = i; }});
+    };
+    if (total_firmware > doc["page_size"].as<int>() * current_page) {
+        // Avança uma pagina
+        options.push_back({"[Next Page]", [=]() { current_page += 1; }});
+    }
+    options.push_back({"[Main Menu]", [=]() { returnToMenu = true; }});
+    loopOptions(options, false, false);
+    if (currentIndex >= 0) loopVersions();
+
+    if (!returnToMenu) goto RESTART;
+}
+
+void loopFirmware_old() {
     LongPressTmp = millis();
     currentIndex = 0;
     displayCurrentItem(doc, currentIndex);
