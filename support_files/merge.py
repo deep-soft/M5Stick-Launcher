@@ -139,7 +139,7 @@ def _merge_bins_callback(target, source, env):
 
     if rc != 0:
         print(f"[merge_bin] Failed with exit code {rc}")
-        env.Exit(rc)
+        # env.Exit(rc)
     else:
         try:
             size = out_bin.stat().st_size

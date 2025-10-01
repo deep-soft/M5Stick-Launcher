@@ -260,7 +260,7 @@ void displayCurrentItem(const JsonDocument &doc, int currentIndex) {
 #ifdef E_PAPER_DISPLAY
     tft->stopCallback();
 #endif
-    JsonObjectConst item = doc[currentIndex];
+    JsonObjectConst item = doc["items"][currentIndex];
 
     const char *name = item["name"];
     const char *author = item["author"];
@@ -294,12 +294,12 @@ void displayCurrentItem(const JsonDocument &doc, int currentIndex) {
     tft->setTextColor(FGCOLOR);
     tft->drawCentreString(texto, tftWidth / 2, tftHeight - (10 + FM * 9), 1);
 
-    texto = String(currentIndex + 1) + " of " + String(doc.size());
+    texto = String(currentIndex + 1) + " of " + String(total_firmware);
     tft->drawCentreString(texto, tftWidth / 2, tftHeight - (2 + FM * 9), 1);
     tft->drawRoundRect(tftWidth / 2 - (6 * 11), tftHeight - (10 + FM * 10), 12 * 11, 19, 3, FGCOLOR);
 #else
 
-    String texto = String(currentIndex + 1) + " of " + String(doc.size());
+    String texto = String(currentIndex + 1) + " of " + String(total_firmware);
     setTftDisplay(int(tftWidth / 2 - 3 * texto.length()), tftHeight - (10 + FM * 6), FGCOLOR, FP, BGCOLOR);
     tft->println(texto);
 #endif
@@ -307,11 +307,10 @@ void displayCurrentItem(const JsonDocument &doc, int currentIndex) {
 #if defined(HAS_TOUCH)
     TouchFooter();
 #endif
-    int docsize = doc.size();
-    if (docsize == 0) docsize = 1; // avoid division by zero
-    int bar = int(tftWidth / (docsize));
+    int docsize = total_firmware == 0 ? 1 : total_firmware; // avoid division by 0
+    int bar = int(tftWidth / (total_firmware));
     if (bar < 5) bar = 5;
-    tft->fillRect((tftWidth * currentIndex) / docsize, tftHeight - 5, bar, 5, FGCOLOR);
+    tft->fillRect((tftWidth * currentIndex) / total_firmware, tftHeight - 5, bar, 5, FGCOLOR);
 
 #ifdef E_PAPER_DISPLAY
     tft->display(false);
@@ -1034,11 +1033,13 @@ void loopOptions(const std::vector<std::pair<String, std::function<void()>>> &op
 **  Where you choose which version to install/download **
 **********************************************************************/
 void loopVersions() {
-    JsonObject item = doc[currentIndex];
+    JsonDocument item = getVersionInfo(doc["items"][currentIndex]["fid"].as<String>());
 
     int versionIndex = 0;
     const char *name = item["name"];
     const char *author = item["author"];
+    const char *fid = item["fid"];
+    const bool star = item["star"].as<bool>();
     JsonArray versions = item["versions"];
     bool redraw = true;
 
@@ -1153,6 +1154,7 @@ void loopVersions() {
                 {"OTA Install",
                  [=]() {
                      installFirmware(
+                         String(fid),
                          String(file),
                          app_size,
                          spiffs,
@@ -1198,7 +1200,7 @@ void loopFirmware() {
         if (WiFi.status() == WL_CONNECTED) {
             /* UP Btn go to previous item */
             if (check(PrevPress)) {
-                if (currentIndex == 0) currentIndex = doc.size() - 1;
+                if (currentIndex == 0) currentIndex = total_firmware - 1;
                 else if (currentIndex > 0) currentIndex--;
                 displayCurrentItem(doc, currentIndex);
 #ifdef E_PAPER_DISPLAY
@@ -1209,7 +1211,7 @@ void loopFirmware() {
             /* DW Btn to next item */
             if (check(NextPress)) {
                 currentIndex++;
-                if ((currentIndex + 1) > doc.size()) currentIndex = 0;
+                if ((currentIndex + 1) > total_firmware) currentIndex = 0;
                 displayCurrentItem(doc, currentIndex);
 #ifdef E_PAPER_DISPLAY
                 tft->display(false);

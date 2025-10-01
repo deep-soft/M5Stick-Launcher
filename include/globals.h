@@ -184,6 +184,12 @@ extern String direct_link;
 
 extern int currentIndex;
 
+extern uint16_t total_firmware; // Number of available firmware on the list
+
+extern uint8_t current_page; // Current Page
+
+extern uint8_t num_pages; // Number of pages (total fw/fw per page)
+
 extern DynamicJsonDocument doc;
 
 extern DynamicJsonDocument settings;

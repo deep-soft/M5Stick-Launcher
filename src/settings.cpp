@@ -111,7 +111,7 @@ void settings_menu() {
         options.push_back({"Direct Link install", [=]() {
                                if (WiFi.status() != WL_CONNECTED) connectWifi();
                                if (WiFi.status() == WL_CONNECTED) {
-                                   installFirmware(direct_link, MAX_APP - 1, 0, 0, 0, 1, 0, 0, 0);
+                                   installFirmware("", direct_link, MAX_APP - 1, 0, 0, 0, 1, 0, 0, 0);
                                }
                            }});
 #endif

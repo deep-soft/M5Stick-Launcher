@@ -6,16 +6,8 @@
 #include "settings.h"
 #include <globals.h>
 
-#if defined(M5STACK)
-#define SERVER_PATH "https://m5burner-cdn.m5stack.com/firmware/"
-#else
-#define SERVER_PATH ""
-#endif
+#define M5_SERVER_PATH "https://m5burner-cdn.m5stack.com/firmware/"
 
-#ifndef JSON_SOURCE_PATH
-#define JSON_SOURCE_PATH                                                                                     \
-    "https://raw.githubusercontent.com/bmorcelli/M5Stack-json-fw/main/v2/third_party.json"
-#endif
 /***************************************************************************************
 ** Function name: wifiConnect
 ** Description:   Connects to wifiNetwork
@@ -59,10 +51,7 @@ void wifiConnect(String ssid, int encryptation, bool isAP) {
             EEPROM.end(); // Free EEPROM memory
             if (sdcardMounted && !found) {
                 JsonObject newWifi = WifiList.add<JsonObject>();
-                if (newWifi.isNull()) {
-                    settings.garbageCollect();
-                    newWifi = WifiList.add<JsonObject>();
-                }
+                if (newWifi.isNull()) { newWifi = WifiList.add<JsonObject>(); }
                 if (!newWifi.isNull()) {
                     newWifi["ssid"] = ssid;
                     newWifi["pwd"] = pwd;
@@ -146,13 +135,13 @@ void ota_function() {
         if (WiFi.status() != WL_CONNECTED) {
             connectWifi();
             if (WiFi.status() == WL_CONNECTED) {
-                if (GetJsonFromM5()) loopFirmware();
+                if (GetJsonFromLauncherHub()) loopFirmware();
             }
         } else {
             // If it is already connected, download the JSON again... it loses the information once you step
             // out of loopFirmware(), dkw
             closeSdCard();
-            if (GetJsonFromM5()) loopFirmware();
+            if (GetJsonFromLauncherHub()) loopFirmware();
         }
         tft->fillScreen(BGCOLOR);
     } else {
@@ -183,13 +172,8 @@ String replaceChars(String input) {
     }
     return input;
 }
-/***************************************************************************************
-** Function name: GetJsonFromM5
-** Description:   Gets JSON from github server
-***************************************************************************************/
-bool GetJsonFromM5() {
-    const char *serverUrl = JSON_SOURCE_PATH;
 
+bool getInfo(const char *serverUrl, JsonDocument &_doc) {
     if (WiFi.status() == WL_CONNECTED) {
         vTaskSuspend(xHandle);
         WiFiClientSecure client;
@@ -199,13 +183,13 @@ bool GetJsonFromM5() {
         tft->fillRoundRect(6, 6, tftWidth - 12, tftHeight - 12, 5, BGCOLOR);
         tft->drawRoundRect(5, 5, tftWidth - 10, tftHeight - 10, 5, FGCOLOR);
         tft->drawCentreString("Getting info from", tftWidth / 2, tftHeight / 3, 1);
-        tft->drawCentreString("repository", tftWidth / 2, tftHeight / 3 + FM * 9, 1);
+        tft->drawCentreString("LauncherHub", tftWidth / 2, tftHeight / 3 + FM * 9, 1);
 
         tft->setCursor(18, tftHeight / 3 + FM * 9 * 2);
         const uint8_t maxAttempts = 5;
         for (uint8_t attempt = 0; attempt < maxAttempts; ++attempt) {
             if (!http.begin(client, serverUrl)) {
-                Serial.printf("GetJsonFromM5> Unable to reach %s\n", serverUrl);
+                Serial.printf("[GetInfo] Unable to reach %s\n", serverUrl);
                 break;
             }
             http.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);
@@ -214,38 +198,69 @@ bool GetJsonFromM5() {
             if (httpResponseCode == HTTP_CODE_OK) {
                 String payload = http.getString();
                 http.end();
-                doc.clear();
-                DeserializationError error = deserializeJson(doc, payload);
+                _doc.clear();
+                DeserializationError error = deserializeJson(_doc, payload);
                 if (error) {
-                    Serial.printf("GetJsonFromM5> Failed to parse JSON: %s\n", error.c_str());
+                    Serial.printf("[GetInfo] Failed to parse JSON: %s\n", error.c_str());
                     displayRedStripe("JSON Parse Failed");
                     vTaskDelay(1500 / portTICK_PERIOD_MS);
-                    doc.clear();
+                    _doc.clear();
                     vTaskResume(xHandle);
                     return false;
                 }
-                Serial.printf("GetJsonFromM5> Loaded %d firmwares\n", doc.size());
+                Serial.printf("[GetInfo] Downloaded and parsed json with size: %d\n", _doc.size());
                 vTaskResume(xHandle);
                 return true;
             }
 
-            Serial.printf("GetJsonFromM5> HTTP error: %d\n", httpResponseCode);
+            Serial.printf("[GetInfo] HTTP error: %d\n", httpResponseCode);
             tftprint(".", 10);
             http.end();
-            vTaskDelay(1000 / portTICK_PERIOD_MS);
         }
-        displayRedStripe("Download Failed");
-        vTaskDelay(1500 / portTICK_PERIOD_MS);
-    }
+    } else return false;
     vTaskResume(xHandle);
     return false;
+}
+
+/***************************************************************************************
+** Function name: GetJsonFromLauncherHub
+** Description:   Gets JSON from github server
+***************************************************************************************/
+bool GetJsonFromLauncherHub(uint8_t page, String order, bool star, String query) {
+    String q = "&order_by=" + order;
+    q += page > 1 ? "&page=" + String(page) : "";
+    q += query.length() > 0 ? "&q=" + String(query) : "";
+    q += star ? "&star=1" : "";
+    const char *serverUrl =
+        String("https://api.launcherhub.net/firmwares?category=" + String(OTA_TAG) + q).c_str();
+
+    if (getInfo(serverUrl, doc)) {
+        total_firmware = doc["total"].as<int>();
+        num_pages = doc["total"].as<int>() / doc["page_size"].as<int>();
+        current_page = page;
+        Serial.printf("GetJsonFromLauncherHub> Loaded %d firmwares\n", total_firmware);
+        return true;
+    }
+    displayRedStripe("Firmware list fetch Failed");
+    vTaskDelay(1500 / portTICK_PERIOD_MS);
+    return false;
+}
+JsonDocument getVersionInfo(String fid) {
+    JsonDocument versions;
+    const char *serverUrl = String("https://api.launcherhub.net/firmwares?fid=" + fid).c_str();
+    if (!getInfo(serverUrl, versions)) {
+        displayRedStripe("Version fetch Failed");
+        vTaskDelay(1500 / portTICK_PERIOD_MS);
+    }
+    return versions;
 }
 /***************************************************************************************
 ** Function name: downloadFirmware
 ** Description:   Downloads the firmware and save into the SDCard
 ***************************************************************************************/
-void downloadFirmware(String file, String fileName, String folder) {
-    if (!file.startsWith("https://")) file = SERVER_PATH + file;
+void downloadFirmware(String fid, String file, String fileName, String folder) { // Adicionar "fid"
+    String fileAddr = "http://api.launcherhub.net/download?fid=" + fid + "&file=" + file;
+    if (fid == "") fileAddr = file;
     int tries = 0;
     fileName = replaceChars(fileName);
     prog_handler = 2;
@@ -265,7 +280,8 @@ retry:
         int httpResponseCode = -1;
 
         while (httpResponseCode < 0) {
-            http.begin(*client, file);
+            http.begin(*client, fileAddr);
+            http.addHeader("HWID", WiFi.macAddress());
             http.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS); // Github links need it
             http.useHTTP10(true);
             httpResponseCode = http.GET();
@@ -312,7 +328,8 @@ retry:
                     Serial.printf("Download> Couldn't create file %s\n", String(folder + fileName + ".bin"));
                     displayRedStripe("Fail creating file.");
                 }
-                // Checks if the file was preatically not downloaded and try one more time (size <= bufSize)
+                // Checks if the file was preatically not downloaded and try one more time (size <=
+                // bufSize)
                 delay(50);
                 file = SDM.open(folder + fileName + ".bin");
                 if (file.size() <= bufSize & tries < 1) {
@@ -349,11 +366,13 @@ retry:
 ** Function name: installFirmware
 ** Description:   installs Firmware using OTA
 ***************************************************************************************/
-void installFirmware(
-    String file, uint32_t app_size, bool spiffs, uint32_t spiffs_offset, uint32_t spiffs_size, bool nb,
+void installFirmware( // adicionar "fid"
+    String fid, String file, uint32_t app_size, bool spiffs, uint32_t spiffs_offset, uint32_t spiffs_size, bool nb,
     bool fat, uint32_t fat_offset[2], uint32_t fat_size[2]
 ) {
     uint32_t app_offset = 0x10000;
+    String fileAddr = "http://api.launcherhub.net/download?fid=" + fid + "&file=" + file;
+    if (fid == "") fileAddr = file;
 
     // Release RAM Memory from Json Objects
     if (spiffs && askSpiffs) {
@@ -376,7 +395,7 @@ void installFirmware(
     displayRedStripe("Connecting FW");
 
     WiFiClientSecure *client = new WiFiClientSecure;
-    if (!file.startsWith("https://")) file = SERVER_PATH + file;
+
     client->setInsecure();
     httpUpdate.rebootOnUpdate(false);
     httpUpdate.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS); // Github links need it
@@ -387,21 +406,20 @@ void installFirmware(
     httpUpdate.onProgress(progressHandler);
     httpUpdate.setLedPin(LED, LED_ON);
     vTaskSuspend(xHandle);
-    if (nb) {
-        if (!httpUpdate.update(*client, file)) {
-            displayRedStripe("Instalation Failed");
-            goto SAIR;
-        }
-    } else {
-        if (!httpUpdate.updateFromOffset(*client, file, app_offset, app_size)) {
-            displayRedStripe("Instalation Failed");
-            goto SAIR;
-        }
-    }
+    bool success = false;
+    if (nb) success = httpUpdate.update(*client, fileAddr);
+    else success = httpUpdate.updateFromOffset(*client, fileAddr, app_offset, app_size);
     if (!client) {
         displayRedStripe("Couldn't Connect to server");
         goto SAIR;
     }
+    if (!success) {
+        displayRedStripe("Instalation Failed");
+        goto SAIR;
+    }
+
+    // Do not request to api.launcherhub.net a second time, go straight to the file
+    if (!file.startsWith("https://")) file = M5_SERVER_PATH + file;
 
     if (spiffs) {
         prog_handler = 1;
