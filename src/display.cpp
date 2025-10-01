@@ -1220,6 +1220,8 @@ RESTART:
     }
     options.push_back({"[Refine Search]", [=]() {
                            // Adicionar menu para escolher novos filtros
+                           displayRedStripe("Not Available yet");
+                           vTaskDelay(2000 / portTICK_PERIOD_MS);
                            returnToMenu = false;
                        }});
     if (current_page > 1) {
