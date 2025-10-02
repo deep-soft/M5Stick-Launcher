@@ -253,72 +253,6 @@ void initDisplayLoop() {
 }
 
 /***************************************************************************************
-** Function name: displayCurrentItem
-** Description:   Display Item on Screen before instalation
-***************************************************************************************/
-void displayCurrentItem(const JsonDocument &doc, int currentIndex) {
-#ifdef E_PAPER_DISPLAY
-    tft->stopCallback();
-#endif
-    JsonObjectConst item = doc["items"][currentIndex];
-
-    const char *name = item["name"];
-    const char *author = item["author"];
-
-    // tft->fillScreen(BGCOLOR);
-    tft->fillRect(0, tftHeight - 5, tftWidth, 5, BGCOLOR);
-    tft->drawRoundRect(5, 5, tftWidth - 10, tftHeight - 10, 5, FGCOLOR);
-    tft->fillRoundRect(6, 6, tftWidth - 12, tftHeight - 12, 5, BGCOLOR);
-
-    setTftDisplay(10, 10, FGCOLOR, FP);
-    tft->print("Firmware: ");
-
-    setTftDisplay(10, 22, ~BGCOLOR, FM, BGCOLOR);
-    String name2 = String(name);
-    tftprintln(name2, 10, 3);
-
-    setTftDisplay(10, 22 + 4 * FM * 8, FGCOLOR);
-    tft->print("by: ");
-    tft->setTextColor(~BGCOLOR);
-    String author2 = String(author).substring(0, 14);
-    tftprintln(author2, 10);
-
-    tft->setTextColor(FGCOLOR);
-    tft->setTextSize(FM);
-    tft->drawChar2(10, tftHeight - (10 + FM * 9), '<', FGCOLOR, BGCOLOR);
-    tft->drawChar2(tftWidth - (10 + FM * 6), tftHeight - (10 + FM * 9), '>', FGCOLOR, BGCOLOR);
-    tft->setTextSize(FP);
-#if TFT_HEIGHT > 200
-    String texto = "More information";
-
-    tft->setTextColor(FGCOLOR);
-    tft->drawCentreString(texto, tftWidth / 2, tftHeight - (10 + FM * 9), 1);
-
-    texto = String(currentIndex + 1) + " of " + String(total_firmware);
-    tft->drawCentreString(texto, tftWidth / 2, tftHeight - (2 + FM * 9), 1);
-    tft->drawRoundRect(tftWidth / 2 - (6 * 11), tftHeight - (10 + FM * 10), 12 * 11, 19, 3, FGCOLOR);
-#else
-
-    String texto = String(currentIndex + 1) + " of " + String(total_firmware);
-    setTftDisplay(int(tftWidth / 2 - 3 * texto.length()), tftHeight - (10 + FM * 6), FGCOLOR, FP, BGCOLOR);
-    tft->println(texto);
-#endif
-
-#if defined(HAS_TOUCH)
-    TouchFooter();
-#endif
-    int docsize = total_firmware == 0 ? 1 : total_firmware; // avoid division by 0
-    int bar = int(tftWidth / (total_firmware));
-    if (bar < 5) bar = 5;
-    tft->fillRect((tftWidth * currentIndex) / total_firmware, tftHeight - 5, bar, 5, FGCOLOR);
-
-#ifdef E_PAPER_DISPLAY
-    tft->display(false);
-    tft->startCallback();
-#endif
-}
-
-/***************************************************************************************
 ** Function name: displayCurrentVersion
 ** Description:   Display Version on Screen before instalation
 ***************************************************************************************/
@@ -917,10 +851,9 @@ Opt_Coord listFiles(int index, String fileList[][3], std::vector<MenuOptions> &o
 **  Function: loopOptions
 **  Where you choose among the options in menu
 **********************************************************************/
-void loopOptions(std::vector<Option> &options, bool bright, uint16_t al, uint16_t bg, bool border) {
+int loopOptions(std::vector<Option> &options, bool bright, uint16_t al, uint16_t bg, bool border, int index) {
     bool redraw = true;
     bool exit = false;
-    int index = 0;
     log_i("Number of options: %d", options.size());
     int numOpt = options.size() - 1;
     Opt_Coord coord;
@@ -1031,12 +964,13 @@ void loopOptions(std::vector<Option> &options, bool bright, uint16_t al, uint16_
         }
 
 #if defined(T_EMBED) || defined(HAS_TOUCH) || defined(HAS_KEYBOARD)
-        if (check(EscPress) || returnToMenu || exit) break;
+        if (check(EscPress) || returnToMenu || exit) return -1;
 #else
         if (exit) break;
 #endif
     }
     tft->fillScreen(BGCOLOR);
+    return index;
 }
 
 /*********************************************************************
@@ -1198,7 +1132,7 @@ Sucesso:
 
 // quando sair, redesenhar a tela
 SAIR:
-    if (!returnToMenu) displayCurrentItem(doc, currentIndex);
+    if (!returnToMenu) tft->fillScreen(BGCOLOR);
 }
 
 /*********************************************************************
@@ -1207,11 +1141,17 @@ SAIR:
 **********************************************************************/
 void loopFirmware() {
     int _page = current_page;
+    String order_by = "downloads";
+    String query = "";
+    bool star = false;
+    bool refine = false;
+    int index = 0;
+
 RESTART:
     currentIndex = -1;
-    if (_page != current_page) {
-        // Adicionar outros filtros
-        GetJsonFromLauncherHub(current_page);
+    if (_page != current_page || refine) {
+        GetJsonFromLauncherHub(current_page, order_by, star, query);
+        index = 1;
     }
     options = {};
     int items = doc["page_size"].as<int>();
@@ -1220,126 +1160,52 @@ RESTART:
         if (page == 1) items = total_firmware;
         else items = total_firmware - items * (page - 1);
     }
-    options.push_back(
-        {"[Refine Search]",
-         [=]() {
-             // Adicionar menu para escolher novos filtros
-             displayRedStripe("Not Available yet");
-             vTaskDelay(2000 / portTICK_PERIOD_MS);
-             returnToMenu = false;
-         },
-         ALCOLOR}
-    );
+    options.push_back({"[Refine Search]", [&]() { refine = true; }, ALCOLOR});
 
     if (current_page > 1) {
         // Volta uma página
         options.push_back({"[Previous Page]", [=]() { current_page -= 1; }, ALCOLOR});
     }
     for (int i = 0; i < items; i++) {
-        bool star = doc["items"][i]["star"].as<bool>();
+        bool stared = doc["items"][i]["star"].as<bool>();
         String txt =
             doc["items"][i]["name"].as<String>() + " (" + doc["items"][i]["author"].as<String>() + ")";
-        options.push_back(
-            {txt, [=]() { currentIndex = i; }, star ? getComplementaryColor(FGCOLOR) : FGCOLOR}
-        );
+        options.push_back({txt, [=]() { currentIndex = i; }, stared ? FGCOLOR - 0x1111 : FGCOLOR});
     };
     if (total_firmware > doc["page_size"].as<int>() * current_page) {
         // Avança uma pagina
         options.push_back({"[Next Page]", [=]() { current_page += 1; }, ALCOLOR});
     }
     options.push_back({"[Main Menu]", [=]() { returnToMenu = true; }, ALCOLOR});
-    loopOptions(options, false, FGCOLOR, BGCOLOR, false);
+
+    tft->fillScreen(BGCOLOR);
+    index = loopOptions(options, false, FGCOLOR, BGCOLOR, false, index);
     if (currentIndex >= 0) loopVersions();
-
-    if (!returnToMenu) goto RESTART;
+    if (refine) {
+        refine = false;
+        std::vector<Option> opt = {
+            {order_by == "downloads" ? "Order by name" : "Order by downloads",
+             [&]() {
+                 order_by = order_by == "downloads" ? "name" : "downloads";
+                 refine = true;
+             }                                                                                          },
+            {star == true ? "Starred -> Off" : "Starred -> On",
+             [&]() {
+                 star = !star;
+                 refine = true;
+             }                                                                                          },
+            {"Text Search",
+             [&]() {
+                 query = keyboard(query, 76, "Search Firmware");
+                 refine = true;
+             }                                                                                          },
+            {"Back to list",                                                   [&]() { refine = false; }}
+        };
+        loopOptions(opt);
+    }
+    if (!returnToMenu && index >= 0) goto RESTART;
+    doc.clear();
 }
-
-// void loopFirmware() {
-//     LongPressTmp = millis();
-//     currentIndex = 0;
-//     displayCurrentItem(doc, currentIndex);
-
-//     while (1) {
-//         if (WiFi.status() == WL_CONNECTED) {
-//             /* UP Btn go to previous item */
-//             if (check(PrevPress)) {
-//                 if (currentIndex == 0) currentIndex = total_firmware - 1;
-//                 else if (currentIndex > 0) currentIndex--;
-//                 displayCurrentItem(doc, currentIndex);
-// #ifdef E_PAPER_DISPLAY
-//                 tft->display(false);
-//                 delay(200);
-// #endif
-//             }
-//             /* DW Btn to next item */
-//             if (check(NextPress)) {
-//                 currentIndex++;
-//                 if ((currentIndex + 1) > total_firmware) currentIndex = 0;
-//                 displayCurrentItem(doc, currentIndex);
-// #ifdef E_PAPER_DISPLAY
-//                 tft->display(false);
-//                 delay(200);
-// #endif
-//             }
-
-// // Checks for long press to get back to Main Menu, only for StickCs.. Cardputer uses Esc btn
-// #if defined(T_EMBED) || defined(HAS_TOUCH) || defined(HAS_KEYBOARD)
-//             /* Select to install */
-//             if (check(SelPress)) {
-//                 loopVersions();
-//                 delay(200);
-//                 returnToMenu = false;
-//             }
-// #else
-//             if (LongPress || SelPress) {
-//                 if (!LongPress) {
-//                     LongPress = true;
-//                     LongPressTmp = millis();
-//                 }
-//                 if (LongPress && millis() - LongPressTmp < 250) goto WAITING;
-//                 LongPress = false;
-//                 if (check(SelPress)) {
-//                     bool exit = false;
-//                     options = {
-//                         {"View version", [=]() { loopVersions(); }},
-//                         {"Main Menu",    [&]() { exit = true; }   }
-//                     };
-//                     loopOptions(options);
-//                     returnToMenu = false;
-//                     if (exit) {
-//                         returnToMenu = true;
-//                         goto END;
-//                     }
-//                     displayCurrentItem(doc, currentIndex);
-//                     delay(200);
-//                 } else {
-//                     check(SelPress);
-//                     loopVersions(); // goes to the Version information
-//                     displayCurrentItem(doc, currentIndex);
-//                     delay(200);
-//                     returnToMenu = false;
-//                 }
-//             }
-//         WAITING:
-//             yield();
-// #endif
-
-// #if defined(T_EMBED) || defined(HAS_TOUCH) || defined(HAS_KEYBOARD)
-//             if (check(EscPress)) break; //  Esc btn to get back to Main Menu.
-// #endif
-
-//             if (returnToMenu) break; // break the loop and gets back to Main Menu
-//         } else {
-//             displayRedStripe("WiFi: Disconnected");
-//             delay(5000);
-//             break;
-//         }
-//     }
-// END:
-//     WiFi.disconnect(true, true);
-//     WiFi.mode(WIFI_OFF);
-//     doc.clear();
-// }
 
 /*********************************************************************
 **  Function: tftprintln

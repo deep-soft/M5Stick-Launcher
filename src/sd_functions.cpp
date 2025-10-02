@@ -101,20 +101,6 @@ void closeSdCard() {
 }
 
 /***************************************************************************************
-** Function name: ToggleSDCard
-** Description:   Turn Off or On the SDCard, return sdcardMounted state
-***************************************************************************************/
-bool ToggleSDCard() {
-    if (sdcardMounted == true) {
-        closeSdCard();
-        sdcardMounted = false;
-        return false;
-    } else {
-        sdcardMounted = setupSdCard();
-        return sdcardMounted;
-    }
-}
-/***************************************************************************************
 ** Function name: deleteFromSd
 ** Description:   delete file or folder
 ***************************************************************************************/
@@ -703,12 +689,12 @@ void updateFromSD(String path) {
             }
         }
 
-        log_i("Appsize: %d", app_size);
-        log_i("Spiffsize: %d", spiffs_size);
-        log_i("FATsize[0]: %d - max: %d at offset: %d", fat_size_sys, MAX_FAT_sys, fat_offset_sys);
-        log_i("FATsize[1]: %d - max: %d at offset: %d", fat_size_vfs, MAX_FAT_vfs, fat_offset_vfs);
-        log_i("FAT: %d", fat);
-        log_i("------------------------");
+        // log_i("Appsize: %d", app_size);
+        // log_i("Spiffsize: %d", spiffs_size);
+        // log_i("FATsize[0]: %d - max: %d at offset: %d", fat_size_sys, MAX_FAT_sys, fat_offset_sys);
+        // log_i("FATsize[1]: %d - max: %d at offset: %d", fat_size_vfs, MAX_FAT_vfs, fat_offset_vfs);
+        // log_i("FAT: %d", fat);
+        // log_i("------------------------");
 
         if (!fat) {
             fat_size_sys = 0;

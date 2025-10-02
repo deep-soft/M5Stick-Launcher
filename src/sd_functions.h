@@ -14,10 +14,6 @@ bool eraseFAT();
 #endif
 bool setupSdCard();
 
-void closeSdCard();
-
-bool ToggleSDCard();
-
 bool deleteFromSd(String path);
 
 bool renameFile(String path, String filename);

@@ -20,9 +20,9 @@ extern Ard_eSPI *tft;
 
 #define FREE_TFT delete tft;
 
-void loopOptions(
+int loopOptions(
     std::vector<Option> &options, bool bright = false, uint16_t al = RED, uint16_t bg = BLACK,
-    bool border = true
+    bool border = true, int index = 0
 );
 void loopVersions();
 void loopFirmware();
@@ -39,7 +39,6 @@ void setTftDisplay(
     uint16_t bg = tft->getTextbgcolor()
 );
 
-void displayCurrentItem(const JsonDocument &doc, int currentIndex);
 void displayCurrentVersion(
     String name, String author, String version, String published_at, int versionIndex, JsonArray versions
 );
@@ -62,7 +61,8 @@ void displayScrollingText(const String &text, Opt_Coord &coord);
 // Opt_Coord drawOptions(int index,Option& options,
 // uint16_t fgcolor, uint16_t bgcolor);
 Opt_Coord drawOptions(
-    int index, std::vector<Option> &options, std::vector<MenuOptions> &opt, uint16_t fgcolor, uint16_t bgcolor
+    int index, std::vector<Option> &options, std::vector<MenuOptions> &opt, uint16_t fgcolor,
+    uint16_t bgcolor, bool border
 );
 
 void drawDeviceBorder();
@@ -70,7 +70,6 @@ void drawDeviceBorder();
 void drawBatteryStatus(uint8_t bat);
 
 void drawMainMenu(std::vector<MenuOptions> &opt, int index);
-// void drawMainMenu(int index = 0);
 
 Opt_Coord listFiles(int index, String fileList[][3], std::vector<MenuOptions> &opt);
 

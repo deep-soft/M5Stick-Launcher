@@ -132,17 +132,9 @@ void connectWifi() {
 void ota_function() {
 #ifndef DISABLE_OTA
     if (!stopOta) {
-        if (WiFi.status() != WL_CONNECTED) {
-            connectWifi();
-            if (WiFi.status() == WL_CONNECTED) {
-                if (GetJsonFromLauncherHub()) loopFirmware();
-            }
-        } else {
-            // If it is already connected, download the JSON again... it loses the information once you step
-            // out of loopFirmware(), dkw
-            closeSdCard();
+        if (WiFi.status() != WL_CONNECTED) connectWifi();
+        if (WiFi.status() == WL_CONNECTED)
             if (GetJsonFromLauncherHub()) loopFirmware();
-        }
         tft->fillScreen(BGCOLOR);
     } else {
         displayRedStripe("Restart to open OTA");
@@ -179,8 +171,7 @@ bool getInfo(String serverUrl, JsonDocument &_doc) {
         WiFiClientSecure *client = new WiFiClientSecure();
         client->setInsecure();
         HTTPClient http;
-        resetTftDisplay(tftWidth / 2 - 6 * String("Getting info from").length(), 32);
-        tft->fillRoundRect(6, 6, tftWidth - 12, tftHeight - 12, 5, BGCOLOR);
+        resetTftDisplay();
         tft->drawRoundRect(5, 5, tftWidth - 10, tftHeight - 10, 5, FGCOLOR);
         tft->drawCentreString("Getting info from", tftWidth / 2, tftHeight / 3, 1);
         tft->drawCentreString("LauncherHub", tftWidth / 2, tftHeight / 3 + FM * 9, 1);
@@ -217,7 +208,7 @@ bool getInfo(String serverUrl, JsonDocument &_doc) {
             tftprint(".", 10);
             http.end();
         }
-    } else return false;
+    }
     vTaskResume(xHandle);
     return false;
 }
