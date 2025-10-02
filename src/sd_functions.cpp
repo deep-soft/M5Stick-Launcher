@@ -272,28 +272,31 @@ void readFs(String &folder, std::vector<Option> &opt) {
         vTaskDelay(2500 / portTICK_PERIOD_MS);
         return; // Retornar imediatamente se não for possível abrir o diretório
     }
-    int allFilesCount = 0;
-    File file;
-    file = root.openNextFile();
-    while (file /* && allFilesCount < (MAXFILES - 1)*/) {
+    while (true) {
+        File file = root.openNextFile();
+        if (!file) { break; }
+
         String fileName = file.name();
+        const bool isDir = file.isDirectory();
         uint16_t color = FGCOLOR - 0x1111;
-        if (!file.isDirectory()) {
-            String ext = fileName.substring(fileName.lastIndexOf(".") + 1);
+
+        if (!isDir) {
+            int dotIndex = fileName.lastIndexOf(".");
+            String ext = dotIndex >= 0 ? fileName.substring(dotIndex + 1) : "";
             ext.toUpperCase();
             if (onlyBins && !ext.equals("BIN")) {
-                file = root.openNextFile();
+                file.close();
                 continue;
             }
             color = FGCOLOR;
         }
-        opt.push_back(
-            {fileName.substring(fileName.lastIndexOf("/") + 1), [=]() { fileToUse = file.path(); }, color}
-        );
-        allFilesCount++;
-        file = root.openNextFile();
+
+        String label = fileName.substring(fileName.lastIndexOf("/") + 1);
+        String path = file.path();
+        opt.push_back({label, [path]() { fileToUse = path; }, color});
+
+        file.close();
     }
-    file.close();
     root.close();
     std::sort(opt.begin(), opt.end(), sortList);
     opt.push_back({"> Back", [&]() { fileToUse = ""; }, ALCOLOR});
@@ -312,20 +315,24 @@ String loopSD(bool filePicker) {
     bool isFolder = false;
     bool isOperator = false;
     bool LongPressDetected = false;
+    bool read_fs = true;
+    bool bkf = false;
 RESTART:
-    if (_Folder != Folder) {
+    if (_Folder != Folder || read_fs) {
         readFs(Folder, options);
         _Folder = Folder;
         index = 0;
+        bkf = false;
+        read_fs = false;
     }
     index = loopOptions(options, false, FGCOLOR, BGCOLOR, false, index);
     // Saídas prematuras
     if (filePicker) return fileToUse;
-    if (index < 0 && Folder == "/") return "";
+    if (index < 0) goto BACK_FOLDER;
     // Verificar se é pasta ou Operador (> Back)
-    if (options[index].color == FGCOLOR - 0x1111) isFolder = true;
+    if (options[index].color == uint16_t(FGCOLOR - 0x1111)) isFolder = true;
     else isFolder = false;
-    if (options[index].color == ALCOLOR) isOperator = true;
+    if (options[index].color == uint16_t(ALCOLOR)) isOperator = true;
     else isOperator = false;
     // Detecçao de long press
     LongPressDetected = false;
@@ -333,7 +340,7 @@ RESTART:
     LongPress = true;
     SelPress = true; // it was just pressed
     LongPressTmp = millis();
-    while (millis() - LongPressTmp < 500 && SelPress) {
+    while (millis() - LongPressTmp < 300 && SelPress) {
         check(AnyKeyPress);
         vTaskDelay(20 / portTICK_PERIOD_MS);
     }
@@ -351,6 +358,7 @@ RESTART:
         if (!LongPressDetected) {
             PreFolder = Folder;
             Folder = fileToUse;
+            Serial.printf("Going : Folder    = %s\nPreFolder = %s\n", Folder, PreFolder);
             goto RESTART;
         }
 
@@ -366,7 +374,6 @@ RESTART:
         loopOptions(opt);
         // Menu for if it is an Operator
     } else if (isOperator) {
-        bool bkf = true;
         if (LongPressDetected) {
             bkf = false;
             std::vector<Option> opt = {
@@ -379,11 +386,13 @@ RESTART:
             opt.push_back({"Main Menu", [=]() { returnToMenu = true; }});
             loopOptions(opt);
         }
-        if (bkf) {
-            if (Folder != "/") {
-                Folder = PreFolder;
-                if (PreFolder != "/") PreFolder = PreFolder.substring(0, PreFolder.lastIndexOf('/'));
-            }
+        if (bkf || fileToUse == "") {
+        BACK_FOLDER:
+            Folder = PreFolder;
+            if (PreFolder != "/") PreFolder = PreFolder.substring(0, PreFolder.lastIndexOf('/'));
+            if (PreFolder == "") PreFolder = "/";
+            if (_Folder == PreFolder) returnToMenu = true;
+            Serial.printf("Backing: Folder    = %s\nPreFolder = %s\n", Folder, PreFolder);
         }
     } else {
         std::vector<Option> opt = {
@@ -397,6 +406,7 @@ RESTART:
         opt.push_back({"Main Menu", [=]() { returnToMenu = true; }});
         loopOptions(opt);
     }
+    read_fs = true;
     if (!returnToMenu) goto RESTART;
     // Free the memory
     options.clear();
