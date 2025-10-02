@@ -554,9 +554,13 @@ void updateFromSD(String path) {
             options = {
                 {"SPIFFS No",  [&]() { spiffs = false; }},
                 {"SPIFFS Yes", [&]() { spiffs = true; } },
+                {"Cancel", [&]() { returnToMenu = true; } }
             };
-
-            loopOptions(options);
+            if(loopOptions(options)<0 || returnToMenu) {
+                file.close();
+                tft->fillScreen(BGCOLOR);
+                return;
+            }
             tft->fillRoundRect(6, 6, tftWidth - 12, tftHeight - 12, 5, BGCOLOR);
         }
 

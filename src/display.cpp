@@ -404,7 +404,7 @@ void progressHandler(int progress, size_t total) {
 ** Description:   Função para desenhar e mostrar as opçoes de contexto
 ***************************************************************************************/
 Opt_Coord drawOptions(
-    int idx, std::vector<Option> &fileList, std::vector<MenuOptions> &opt, uint16_t fgcolor, uint16_t bgcolor,
+    int idx, std::vector<Option> &opt, std::vector<MenuOptions> &t_menu, uint16_t fgcolor, uint16_t bgcolor,
     bool border
 ) {
     int index = idx;
@@ -412,19 +412,19 @@ Opt_Coord drawOptions(
     tft->stopCallback();
 #endif
 #if defined(E_PAPER_DISPLAY) && !defined(GxEPD2_DISPLAY)
-    int MAX_MENU_SIZE = 13;
     int FONT_S = (FM * (LH + 3) + 4);
+    int MAX_MENU_SIZE = 13 + !border;
 #else
     int FONT_S = (FM * LH + 4);
     int MAX_MENU_SIZE = (int)(tftHeight / 25) + !border;
 #endif
     Opt_Coord coord;
-    opt.clear();
-    int arraySize = fileList.size();
+    t_menu.clear();
+    int arraySize = opt.size();
     int visibleCount = MAX_MENU_SIZE;
     int num_pages = 1 + arraySize / MAX_MENU_SIZE;
-    static int show_page = 0;
-    if (fileList.size() < MAX_MENU_SIZE) visibleCount = fileList.size();
+    int show_page = 0;
+    if (opt.size() < MAX_MENU_SIZE) visibleCount = opt.size();
 
 #ifdef HAS_TOUCH
     if (arraySize <= MAX_MENU_SIZE) num_pages = 1;
@@ -500,6 +500,12 @@ Opt_Coord drawOptions(
     tft->setTextSize(FM);
     tft->setCursor(tftWidth * 0.10 * border + 5, tftHeight / 2 - visibleCount * FONT_S / 2);
 
+    int lastPage = arraySize - start - Max_items;
+    Serial.printf("lastPage: %d\n, start: %d, Max_items: %d", lastPage, start, Max_items);
+    Serial.printf(
+        "num_pages: %d, show_page: %d, array_size: %d, index: %d\n", num_pages, show_page, arraySize, index
+    );
+
 #ifdef HAS_TOUCH
     if (show_page == 0 && num_pages > 1) {
         Max_items = MAX_MENU_SIZE - 1;
@@ -507,10 +513,11 @@ Opt_Coord drawOptions(
         Max_items = MAX_MENU_SIZE - 2;
     }
     if (show_page > 0) {
-        opt.push_back(
+        t_menu.push_back(
             MenuOptions("", "-", nullptr, true, false, 10 + 5 * FM * LW, 0, tftWidth, FM * LH + 10)
         );
         tft->setTextColor(ALCOLOR, BGCOLOR);
+
         txt = "..Page Up..";
         tft->drawCentreString(txt.substring(0, nchars), tftWidth / 2, tft->getCursorY(), 1);
         tft->println(); // add a new line to the line feeder
@@ -521,7 +528,7 @@ Opt_Coord drawOptions(
     while (i < arraySize && j < visibleCount) {
         if (i >= start) {
             uint16_t c_y = tft->getCursorY() + 4;
-            uint16_t color = fileList[i].color;
+            uint16_t color = opt[i].color;
             if (color == NO_COLOR) color = fgcolor;
             MenuOptions optItem = MenuOptions(
                 String(i),
@@ -545,12 +552,12 @@ Opt_Coord drawOptions(
                 coord.fgcolor = color;
                 coord.bgcolor = bgcolor;
             } else txt = " ";
-            txt += String(fileList[i].label) + "                       ";
+            txt += String(opt[i].label) + "                       ";
             tft->setTextColor(color, bgcolor);
             tft->println(txt.substring(0, nchars));
             // Serial.println(txt.substring(0,nchars));
             //  tft->drawRect(optItem.x,optItem.y,optItem.w,optItem.h,BLUE); // debug purpose
-            opt.push_back(optItem);
+            t_menu.push_back(optItem);
             j++;
         }
         i++;
@@ -561,10 +568,11 @@ Opt_Coord drawOptions(
     }
 
 #ifdef HAS_TOUCH
-    if (num_pages != show_page + 1) {
-        opt.push_back(
+    if (lastPage > 0) {
+        t_menu.push_back(
             MenuOptions("", "+", nullptr, true, false, 0, tft->getCursorY(), tftWidth, FM * LH + 6)
         );
+        tft->setTextColor(ALCOLOR, BGCOLOR);
         txt = "..Page Down..";
         tft->drawCentreString(txt.substring(0, nchars), tftWidth / 2, tft->getCursorY() + 4, 1);
     }
@@ -689,162 +697,6 @@ void drawBatteryStatus(uint8_t bat) {
     tft->fillRoundRect(tftWidth - 40, 9, 30 * bat / 100, 13, 2, FGCOLOR);
     tft->drawLine(tftWidth - 30, 9, tftWidth - 30, 9 + 13, BGCOLOR);
     tft->drawLine(tftWidth - 20, 9, tftWidth - 20, 9 + 13, BGCOLOR);
-}
-
-/***************************************************************************************
-** Function name: listFiles
-** Description:   Função para desenhar e mostrar o menu principal
-***************************************************************************************/
-#if defined(E_PAPER_DISPLAY) && !defined(GxEPD2_DISPLAY)
-#define MAX_ITEMS 14
-#else
-#define MAX_ITEMS (int)((tftHeight - 20) / (LH * FM))
-#endif
-Opt_Coord listFiles(int index, String fileList[][3], std::vector<MenuOptions> &opt) {
-
-#ifdef E_PAPER_DISPLAY
-    tft->stopCallback();
-#endif
-    Opt_Coord coord;
-    opt.clear();
-    tft->setCursor(10, 10);
-    tft->setTextSize(FM);
-    int i = 0;
-    int arraySize = 0;
-    while (fileList[arraySize][2] != "" && arraySize < MAXFILES) arraySize++;
-
-    int num_pages = 0;
-    static int show_page = 0;
-
-    // calcula o numero de paginas
-    if (arraySize <= MAX_ITEMS) {
-        num_pages = 1;
-    } else {
-        uint8_t ofs = 0;
-#ifdef HAS_TOUCH
-        ofs = 1;
-#endif
-        int remains = arraySize - (MAX_ITEMS - ofs);
-        int nextPages = remains / (MAX_ITEMS - 2 * ofs);
-        int lastPage = (arraySize - remains - nextPages * (MAX_ITEMS - 2 * ofs)) > 0 ? 1 : 0;
-        num_pages = 1 + nextPages + lastPage;
-    }
-    // Serial.printf("arraySize: %d, num_pages: %d, MAX_ITEMS: %d\n----------------------\n", arraySize,
-    // num_pages, MAX_ITEMS);
-    int start = 0;
-    if (num_pages > 1) {
-        for (int i = 0; i <= num_pages; i++) { // check for the other pages
-            int ini, end;
-#ifdef HAS_TOUCH
-            if (i == 0) {
-                ini = 0;
-                end = (MAX_ITEMS - 1);
-            } else {
-                ini = 1 + i * (MAX_ITEMS - 2);
-                end = ini + (MAX_ITEMS - 2);
-            }
-#else
-            ini = i * MAX_ITEMS; // index value at the top of the list, index starts at 0
-            end = ini + MAX_ITEMS;
-#endif
-
-            // Serial.printf("\nnum_pages: %d, show_page: %d, index: %d\n", num_pages, i, index);
-            // Serial.printf("ini: %d, end: %d\n", ini, end);
-            if (index >= ini && index < end) {
-                start = ini;
-                if (index == ini || i != show_page)
-                    tft->fillRoundRect(6, 6, tftWidth - 12, tftHeight - 12, 5, BGCOLOR);
-                show_page = i;
-                break;
-            }
-        }
-    }
-
-    int nchars = (tftWidth - 20) / (LW * FM);
-    String txt = ">";
-    int j = 0;
-    int Max_items = MAX_ITEMS;
-#ifdef HAS_TOUCH
-    if (show_page == 0 && num_pages > 1) {
-        Max_items = MAX_ITEMS - 1;
-    } else if (show_page > 0 && num_pages > 1) {
-        Max_items = MAX_ITEMS - 2;
-    }
-    if (show_page > 0) {
-        opt.push_back(
-            MenuOptions("", "-", nullptr, true, false, 10 + 5 * FM * LW, 0, tftWidth, FM * LH + 10)
-        );
-        tft->setTextColor(ALCOLOR, BGCOLOR);
-        tft->drawRightString("..Page Up..", tftWidth - 6, tft->getCursorY(), 1);
-        tft->println("[ESC]");
-    }
-#endif
-
-    while (i < arraySize) {
-        if (i >= start && fileList[i][2] != "") {
-            uint16_t c_y = tft->getCursorY();
-            int first_offset = 0;
-            tft->setCursor(10, c_y);
-
-#ifdef HAS_TOUCH
-            if (start == i) {
-                first_offset = 10 + 5 * LW * FM; // [ESC]
-                tft->setTextColor(ALCOLOR, BGCOLOR);
-                tft->print("[ESC]");
-            }
-#endif
-            MenuOptions optItem =
-                MenuOptions(String(i), "", nullptr, true, false, 0 + first_offset, c_y, tftWidth, FM * LH);
-            if (fileList[i][2] == "folder") tft->setTextColor(FGCOLOR - 0x1111, BGCOLOR);
-            else if (fileList[i][2] == "operator") tft->setTextColor(ALCOLOR, BGCOLOR);
-            else { tft->setTextColor(FGCOLOR, BGCOLOR); }
-
-            if (index == i) {
-                optItem.selected = true;
-                txt = ">";
-#ifdef HAS_TOUCH
-                coord.x = 10 + FM * LW + (start == i ? 4 * FM * LW : 0);
-                coord.size = nchars - (start == i ? 4 : 0);
-#else
-                coord.x = 10 + FM * LW;
-                coord.size = nchars;
-#endif
-                coord.y = c_y;
-
-                coord.fgcolor = fileList[i][2] == "folder" ? FGCOLOR - 0x1111 : FGCOLOR;
-                coord.bgcolor = BGCOLOR;
-            } else txt = " ";
-            txt += fileList[i][0] + "                       ";
-#ifdef HAS_TOUCH
-            tft->println(txt.substring(0, nchars - (start == i ? 6 : 0)));
-#else
-            tft->println(txt.substring(0, nchars));
-#endif
-            opt.push_back(optItem);
-            j++;
-        }
-        i++;
-        if (i == (start + Max_items) || fileList[i][2] == "") break;
-    }
-#ifdef HAS_TOUCH
-    if (num_pages != show_page + 1) {
-        tft->setTextColor(ALCOLOR, BGCOLOR);
-        opt.push_back(
-            MenuOptions("", "+", nullptr, true, false, 0, tft->getCursorY(), tftWidth, FM * LH + 6)
-        );
-        tft->drawCentreString("..Page Down..", tftWidth / 2, tft->getCursorY(), 1);
-    }
-
-#endif
-
-#if defined(HAS_TOUCH)
-    TouchFooter();
-#endif
-#ifdef E_PAPER_DISPLAY
-    tft->display(false);
-    tft->startCallback();
-#endif
-    return coord;
 }
 
 /*********************************************************************

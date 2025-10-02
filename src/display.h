@@ -71,8 +71,6 @@ void drawBatteryStatus(uint8_t bat);
 
 void drawMainMenu(std::vector<MenuOptions> &opt, int index);
 
-Opt_Coord listFiles(int index, String fileList[][3], std::vector<MenuOptions> &opt);
-
 void TouchFooter(uint16_t color = FGCOLOR);
 
 void TouchFooter2(uint16_t color = FGCOLOR);
