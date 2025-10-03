@@ -67,22 +67,22 @@ if board:
         if target:
             sdk_lines.append(f'CONFIG_IDF_TARGET="{target}"')
 
-pinout = os.path.join(root, 'boards', 'pinouts', f'{board_dir}.h')
-if os.path.exists(pinout):
-    with open(pinout) as f:
-        for line in f:
-            line = line.split('//',1)[0].strip()
-            if line.startswith('#define'):
-                parts = line.split()
-                if len(parts) >= 2:
-                    name = parts[1]
-                    if name == 'Pins_Arduino_h':
-                        continue
-                    value = ' '.join(parts[2:]) if len(parts) >= 3 else None
-                    if not value:
-                        flags.append(f'-D{name}')
-                    else:
-                        flags.append(f'-D{name}={value}')
+#pinout = os.path.join(root, 'boards', 'pinouts', f'{board_dir}.h')
+#if os.path.exists(pinout):
+#    with open(pinout) as f:
+#        for line in f:
+#            line = line.split('//',1)[0].strip()
+#            if line.startswith('#define'):
+#                parts = line.split()
+#                if len(parts) >= 2:
+#                    name = parts[1]
+#                    if name == 'Pins_Arduino_h':
+#                        continue
+#                    value = ' '.join(parts[2:]) if len(parts) >= 3 else None
+#                    if not value:
+#                        flags.append(f'-D{name}')
+#                    else:
+#                        flags.append(f'-D{name}={value}')
             # elif line.startswith('static const uint8_t'):
             #     # pins_arduino.h exposes these as global variables; avoid converting to macros
             #     line = line.replace(';', '')

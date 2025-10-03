@@ -11,9 +11,10 @@ IRAM_ATTR void checkPosition();
 #if defined(T_EMBED_1101)
 // Power handler for battery detection
 #include <Wire.h>
+#define XPOWERS_CHIP_BQ25896
 #include <XPowersLib.h>
 #include <esp32-hal-dac.h>
-XPowersPPM PPM;
+PowersBQ25896 PPM;
 #elif defined(T_EMBED)
 #include <driver/adc.h>
 #include <esp_adc_cal.h>
@@ -65,7 +66,7 @@ void _setup_gpio() {
         PPM.setChargerConstantCurr(832);
         PPM.getChargerConstantCurr();
         Serial.printf("getChargerConstantCurr: %d mA\n", PPM.getChargerConstantCurr());
-        PPM.enableADCMeasure();
+        PPM.enableMeasure();
         PPM.enableCharge();
         PPM.enableOTG();
         PPM.disableOTG();

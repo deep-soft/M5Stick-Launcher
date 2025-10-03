@@ -198,6 +198,10 @@ menu "Launcher Configuration"
       bool "m5stack-cplus2"
       help
         Select m5stack-cplus2 environment
+    config PIO_ENV_M5STACK_TAB5
+      bool "m5stack-tab5"
+      help
+        Select m5stack-tab5 environment
     config PIO_ENV_SMOOCHIEE_BOARD
       bool "smoochiee-board"
       help
