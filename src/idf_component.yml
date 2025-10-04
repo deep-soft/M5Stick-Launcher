@@ -1,5 +1,5 @@
 dependencies:
-  espressif/arduino-esp32: "^3.0.0"
+  espressif/arduino-esp32: "^3.3.1"
   AsyncTCP:
     git: https://github.com/me-no-dev/AsyncTCP.git
   ESPAsyncWebServer:
@@ -12,8 +12,16 @@ dependencies:
     git: https://github.com/m5stack/M5GFX.git
   espressif/esp_rainmaker:
     version: "1.5.2"
+    rules:
+      - if: target == esp32p4
+  espressif/qrcode:
+    version: ">=0.1.0"
+    rules:
+      - if: target == esp32p4
   espressif/esp_diagnostics:
     version: "1.2.0"
+    rules:
+      - if: target == esp32p4
 idf_version: ">=5.5.1"
 options:
   skip_component_git_revision_check: true

@@ -2,13 +2,8 @@
 
 #if defined(E_PAPER_DISPLAY) && !defined(GxEPD2_DISPLAY)
 
-#elif defined(HEADLESS)
+#elif !defined(HEADLESS) && !defined(USE_LOVYANGFX) && !defined(USE_TFT_ESPI) & !defined(USE_M5GFX)
 
-#elif defined(USE_LOVYANGFX)
-
-#elif defined(USE_TFT_ESPI)
-
-#else
 void Ard_eSPI::drawCentreString(String s, uint16_t x, uint16_t y, int f) {
     uint16_t _x = cursor_x;
     uint16_t _y = cursor_y;
