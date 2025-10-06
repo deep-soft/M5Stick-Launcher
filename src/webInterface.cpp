@@ -7,7 +7,7 @@
 #include "sd_functions.h"
 #include "settings.h"
 #include <globals.h>
-
+#include "esp_ota_ops.h"
 struct Config {
     String httpuser;
     String httppassword;   // password to access web admin
@@ -108,7 +108,7 @@ String listFiles(String folder) {
             if (foundfile.isDirectory()) returnText += "Fo:" + String(foundfile.name()) + ":0\n";
         } else break;
         foundfile = root.openNextFile();
-        esp_task_wdt_reset();
+        //esp_task_wdt_reset();
     }
     root.close();
     foundfile.close();
@@ -123,7 +123,7 @@ String listFiles(String folder) {
                     "Fi:" + String(foundfile.name()) + ":" + humanReadableSize(foundfile.size()) + "\n";
         } else break;
         foundfile = root.openNextFile();
-        esp_task_wdt_reset();
+        //esp_task_wdt_reset();
     }
     root.close();
     foundfile.close();
@@ -590,6 +590,8 @@ void startWebUi(String ssid, int encryptation, bool mode_ap) {
     while (!check(SelPress)) {
         if (shouldReboot) {
             FREE_TFT
+            const esp_partition_t* partition = esp_partition_find_first(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_APP_OTA_0, NULL);
+            esp_ota_set_boot_partition(partition);
             ESP.restart();
         }
         // Perform installation from SD Card
@@ -652,6 +654,8 @@ void startWebUi(String ssid, int encryptation, bool mode_ap) {
     while (1) {
         if (shouldReboot) {
             FREE_TFT
+            const esp_partition_t* partition = esp_partition_find_first(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_APP_OTA_0, NULL);
+            esp_ota_set_boot_partition(partition);
             ESP.restart();
         }
         // Perform installation from SD Card

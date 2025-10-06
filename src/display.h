@@ -45,7 +45,7 @@ void displayRedStripe(
     String text, uint16_t fgcolor = getComplementaryColor(BGCOLOR), uint16_t bgcolor = ALCOLOR
 );
 
-void progressHandler(int progress, size_t total);
+void progressHandler(size_t progress, size_t total);
 
 struct Opt_Coord {
     uint16_t x = 0;

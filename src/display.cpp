@@ -7,7 +7,10 @@
 
 #if defined(HEADLESS)
 SerialDisplayClass *tft = new SerialDisplayClass();
-#elif defined(E_PAPER_DISPLAY) || defined(USE_TFT_ESPI) || defined(USE_LOVYANGFX) || defined(GxEPD2_DISPLAY) || defined(USE_M5GFX)
+#elif defined(E_PAPER_DISPLAY) || defined(USE_TFT_ESPI) || defined(USE_LOVYANGFX) || defined(GxEPD2_DISPLAY)
+Ard_eSPI *tft = new Ard_eSPI();
+#elif defined(USE_M5GFX)
+#include <M5Unified.h>
 Ard_eSPI *tft = new Ard_eSPI();
 #else
 #ifdef TFT_PARALLEL_8_BIT
@@ -125,7 +128,7 @@ void setTftDisplay(int x, int y, uint16_t fc, int size, uint16_t bg) {
 ** Description:   Draw touch screen footer
 ***************************************************************************************/
 void TouchFooter(uint16_t color) {
-    tft->drawRoundRect(5, tftHeight + 2, tftWidth - 10, 43, 5, color);
+    tft->drawRoundRect(5, tftHeight + 2, tftWidth - 10, (FM*LH+4), 5, color);
     tft->setTextColor(color);
     tft->setTextSize(FM);
     tft->drawCentreString("PREV", tftWidth / 6, tftHeight + 4, 1);
@@ -138,7 +141,7 @@ void TouchFooter(uint16_t color) {
 ** Description:   Draw touch screen footer
 ***************************************************************************************/
 void TouchFooter2(uint16_t color) {
-    tft->drawRoundRect(5, tftHeight + 2, tftWidth - 10, 43, 5, color);
+    tft->drawRoundRect(5, tftHeight + 2, tftWidth - 10, (FM*LH+4), 5, color);
     tft->setTextColor(color);
     tft->setTextSize(FM);
     tft->drawCentreString("Skip", tftWidth / 6, tftHeight + 4, 1);
@@ -189,30 +192,30 @@ void initDisplay(bool doAll) {
                 txt = String(cor);
             }
 
-            if (_x >= (tftWidth - (LW + 4))) {
+            if (_x >= (tftWidth - (LW*FP + 4))) {
                 _x = 10;
-                _y += LH;
+                _y += LH*FP;
             } else if (_x < 10) {
                 _x = 10;
             }
-            if (_y >= (tftHeight - (LH + LH / 2))) break;
+            if (_y >= (tftHeight - (LH*FP + LH*FP / 2))) break;
             tft->setCursor(_x, _y);
-            if (_y > (tftHeight - (LH * FM + LH / 2)) && _x >= (tftWidth - ((LW + 4) + LW * name.length()))) {
+            if (_y > (tftHeight - (LH * FM + LH*FM / 2)) && _x >= (tftWidth - ((LW*FP + 4) + LW*FP * name.length()))) {
                 tft->setTextColor(FGCOLOR);
                 tft->print(name);
-                _x += LW * name.length();
+                _x += LW*FP * name.length();
             } else {
                 tft->print(txt);
-                _x += LW;
+                _x += LW*FP;
             }
         } else {
-            if (_y > (tftHeight - (LH * FM + LH / 2)) && _x >= (tftWidth - ((LW + 4) + LW * name.length())))
-                _x += LW * name.length();
-            else _x += LW;
+            if (_y > (tftHeight - (LH * FM + LH*FM / 2)) && _x >= (tftWidth - ((LW*FP + 4) + LW*FP * name.length())))
+                _x += LW*FP * name.length();
+            else _x += LW*FP;
 
-            if (_x >= (tftWidth - (LW + 4))) {
+            if (_x >= (tftWidth - (LW*FP + 4))) {
                 _x = 10;
-                _y += LH;
+                _y += LH*FP;
             }
         }
         tft->setCursor(_x, _y);
@@ -233,7 +236,7 @@ void initDisplay(bool doAll) {
 #endif
 
 END:
-    delay(50);
+    vTaskDelay(50 / portTICK_PERIOD_MS);
 #endif
 }
 /***************************************************************************************
@@ -401,14 +404,14 @@ void displayRedStripe(String text, uint16_t fgcolor, uint16_t bgcolor) {
     int size;
     if (text.length() * LW * FM < (tft->width() - 2 * FM * LW)) size = FM;
     else size = FP;
-    tft->fillRoundRect(10, tftHeight / 2 - 13, tftWidth - 20, 26, 7, bgcolor);
+    tft->fillRoundRect(10, tftHeight / 2 - (FM*LH/2 + 5), tftWidth - 20, FM*LH + 10, 7, bgcolor);
     tft->setTextColor(fgcolor, bgcolor);
     if (size == FM) {
         tft->setTextSize(FM);
-        tft->setCursor(tftWidth / 2 - FM * 3 * text.length(), tftHeight / 2 - 8);
+        tft->setCursor(tftWidth / 2 - FM * 3 * text.length(), tftHeight / 2 - FM*LH/2);
     } else {
         tft->setTextSize(FP);
-        tft->setCursor(tftWidth / 2 - FP * 3 * text.length(), tftHeight / 2 - 8);
+        tft->setCursor(tftWidth / 2 - FP * 3 * text.length(), tftHeight / 2 - FP*LH/2);
     }
     tft->println(text);
 
@@ -423,12 +426,14 @@ void displayRedStripe(String text, uint16_t fgcolor, uint16_t bgcolor) {
 ** Description:   Função para manipular o progresso da atualização
 ** Dependencia: prog_handler =>>    0 - Flash, 1 - SPIFFS
 ***************************************************************************************/
-void progressHandler(int progress, size_t total) {
+void progressHandler(size_t progress, size_t total) {
 #ifdef GxEPD2_DISPLAY
     static unsigned long lastUpdate = 0;
     tft->setFullWindow();
 #endif
-    int barWidth = map(progress, 0, total, 0, tftWidth - 40);
+    float barWidthFloat = (float)(tftWidth - 40) * progress / total;
+    size_t barWidth = static_cast<size_t>(barWidthFloat);
+    //Serial.printf("Total: %d, Progress: %d, Progress bar width=%d \n",total, progress, barWidth);
     if (progress == 0) {
         tft->setTextSize(FM);
         tft->setTextColor(ALCOLOR);
@@ -473,7 +478,7 @@ void progressHandler(int progress, size_t total) {
 #define FONT_S (FM * (LH + 3) + 4)
 #else
 #define FONT_S (FM * LH + 4)
-#define MAX_MENU_SIZE (int)(tftHeight / 25)
+#define MAX_MENU_SIZE (int)(tftHeight / (FM*LH+9))
 #endif
 Opt_Coord drawOptions(
     int idx, const std::vector<std::pair<String, std::function<void()>>> &fileList,
@@ -658,7 +663,7 @@ void drawMainMenu(std::vector<MenuOptions> &opt, int index) {
     int cols = (tftHeight > 90) ? 3 : 5;             // Number of columns based on height
     int rows = (size + cols - 1) / cols;             // Calculate rows needed
     int w = (tftWidth - 16) / cols;                  // Width of each icon
-    int h = (tftHeight - (26 + LH * FP + 6)) / rows; // Height of each icon
+    int h = (tftHeight - ((FP*LH+10) + LH * FP + 6)) / rows; // Height of each icon
 
     int f_size = FG;
     if (tftHeight <= 135) f_size = FM;
@@ -667,7 +672,7 @@ void drawMainMenu(std::vector<MenuOptions> &opt, int index) {
     for (int i = 0; i < size; ++i) {
         int col = i % cols;
         int row = i / cols;
-        int y = 28 + row * h;
+        int y = (FP*LH+12) + row * h;
         int xOffset = 0;
 
         // Última linha incompleta: centralizar
@@ -729,7 +734,7 @@ void drawMainMenu(std::vector<MenuOptions> &opt, int index) {
 }
 void drawDeviceBorder() {
     tft->drawRoundRect(5, 5, tftWidth - 10, tftHeight - 10, 5, FGCOLOR);
-    tft->drawLine(5, 25, tftWidth - 6, 25, FGCOLOR);
+    tft->drawLine(5, (FP*LH+9), tftWidth - 6, (FP*LH+9), FGCOLOR);
 }
 
 void drawBatteryStatus(uint8_t bat) {
@@ -752,7 +757,7 @@ void drawBatteryStatus(uint8_t bat) {
 #if defined(E_PAPER_DISPLAY) && !defined(GxEPD2_DISPLAY)
 #define MAX_ITEMS 14
 #else
-#define MAX_ITEMS (int)((tftHeight - 20) / (LH * FM))
+#define MAX_ITEMS (int)((tftHeight - (FM*LH+4)) / (LH * FM))
 #endif
 Opt_Coord listFiles(int index, String fileList[][3], std::vector<MenuOptions> &opt) {
 

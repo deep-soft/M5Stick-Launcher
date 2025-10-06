@@ -51,7 +51,7 @@ TouchPoint touchPoint;
 keyStroke KeyStroke;
 
 #if defined(HAS_TOUCH)
-volatile uint16_t tftHeight = TFT_WIDTH - 20;
+volatile uint16_t tftHeight = TFT_WIDTH - (FM*LH+4);
 #else
 volatile uint16_t tftHeight = TFT_WIDTH;
 #endif
@@ -335,14 +335,14 @@ void setup() {
     tft->setRotation(rotation);
     if (rotation & 0b1) {
 #if defined(HAS_TOUCH)
-        tftHeight = TFT_WIDTH - 20;
+        tftHeight = TFT_WIDTH - (FM*LH+4);
 #else
         tftHeight = TFT_WIDTH;
 #endif
         tftWidth = TFT_HEIGHT;
     } else {
 #if defined(HAS_TOUCH)
-        tftHeight = TFT_HEIGHT - 20;
+        tftHeight = TFT_HEIGHT - (FM*LH+4);
 #else
         tftHeight = TFT_HEIGHT;
 #endif
@@ -407,6 +407,8 @@ void setup() {
         {
             tft->fillScreen(BLACK);
             FREE_TFT
+            const esp_partition_t* partition = esp_partition_find_first(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_APP_OTA_0, NULL);
+            esp_ota_set_boot_partition(partition);
             ESP.restart();
         }
     }
@@ -416,6 +418,9 @@ void setup() {
     if (firstByte == 0xE9) {
         tft->fillScreen(BLACK);
         FREE_TFT
+        const esp_partition_t* partition = esp_partition_find_first(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_APP_OTA_0, NULL);
+        esp_ota_set_boot_partition(partition);
+        Wire.end();
         ESP.restart();
     } else goto Launcher;
 

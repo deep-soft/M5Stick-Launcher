@@ -106,7 +106,8 @@ void settings_menu() {
         options.push_back({"Restore FAT Sys", [=]() { restorePartition("sys"); }}); // Test only
     if (MAX_FAT_vfs > 0) options.push_back({"Restore FAT Vfs", [=]() { restorePartition("vfs"); }});
     if (dev_mode) options.push_back({"Boot Animation", [=]() { initDisplayLoop(); }});
-    options.push_back({"Restart", [=]() { FREE_TFT ESP.restart(); }});
+    options.push_back({"Restart", [=]() { FREE_TFT const esp_partition_t* partition = esp_partition_find_first(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_APP_OTA_0, NULL);
+            esp_ota_set_boot_partition(partition);ESP.restart(); }});
 #if defined(STICK_C_PLUS2) || defined(T_EMBED) || defined(STICK_C_PLUS) || defined(T_LORA_PAGER)
     options.push_back({"Turn-off", [=]() { powerOff(); }});
 #endif
@@ -251,14 +252,14 @@ int gsetRotation(bool set) {
 
         if (rotation & 0b1) {
 #if defined(HAS_TOUCH)
-            tftHeight = TFT_WIDTH - 20;
+            tftHeight = TFT_WIDTH - (FM*LH+4);
 #else
             tftHeight = TFT_WIDTH;
 #endif
             tftWidth = TFT_HEIGHT;
         } else {
 #if defined(HAS_TOUCH)
-            tftHeight = TFT_HEIGHT - 20;
+            tftHeight = TFT_HEIGHT - (FM*LH+4);
 #else
             tftHeight = TFT_HEIGHT;
 #endif

@@ -256,7 +256,7 @@ HTTPUpdateResult HTTPUpdate::handleUpdate(HTTPClient& http, const String& curren
     int code = http.GET();
     int len;
 
-    if (size==0) len = http.getSize(); 
+    if (size==0) len = http.getSize();
     else len = size;
 
     if(code <= 0) {
@@ -285,7 +285,7 @@ HTTPUpdateResult HTTPUpdate::handleUpdate(HTTPClient& http, const String& curren
     //}
 
     if(code==206) code=200;  // HTTP_CODE_PARTIAL_CONTENT is treated as HTTP_OK
-    
+
 
     switch(code) {
     case HTTP_CODE_OK:  ///< OK (Start Update)
@@ -325,7 +325,7 @@ HTTPUpdateResult HTTPUpdate::handleUpdate(HTTPClient& http, const String& curren
                 }
 
                 WiFiClient * tcp = http.getStreamPtr();
-                
+
 
 // To do?                WiFiUDP::stopAll();
 // To do?                WiFiClient::stopAllExcept(tcp);
@@ -384,6 +384,8 @@ HTTPUpdateResult HTTPUpdate::handleUpdate(HTTPClient& http, const String& curren
                     }
 
                     if(_rebootOnUpdate && !spiffs) {
+                        const esp_partition_t* partition = esp_partition_find_first(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_APP_OTA_0, NULL);
+            esp_ota_set_boot_partition(partition);
                         ESP.restart();
                     }
 
@@ -432,7 +434,7 @@ bool HTTPUpdate::runUpdate(Stream& in, uint32_t size, String md5, int command)
 {
 
     StreamString error;
-    
+
 
     if (_cbProgress) {
         Update.onProgress(_cbProgress);

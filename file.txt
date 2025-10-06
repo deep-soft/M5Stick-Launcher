@@ -49,3 +49,5 @@ idf.py -DCONFIG_PIO_ENV_MARAUDER_MINI=true build
 idf.py -DCONFIG_PIO_ENV_MARAUDER_V7=true build
 idf.py -DCONFIG_PIO_ENV_AWOK_MINI=true build
 idf.py -DCONFIG_PIO_ENV_M5STACK_TAB5=true build
+
+python -m esptool --chip esp32p4 merge_bin -o file.bin 0x2000 build/bootloader/bootloader.bin 0x8000 build/partition_table/partition-table.bin 0x10000 build/Launcher_IDF.bin --flash_mode qio

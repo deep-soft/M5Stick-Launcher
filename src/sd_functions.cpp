@@ -648,6 +648,8 @@ void updateFromSD(String path) {
         file.close();
         tft->fillScreen(BGCOLOR);
         FREE_TFT
+        const esp_partition_t* partition = esp_partition_find_first(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_APP_OTA_0, NULL);
+            esp_ota_set_boot_partition(partition);
         ESP.restart();
     } else {
         if (!file.seek(0x8000)) goto Exit;
@@ -755,6 +757,8 @@ void updateFromSD(String path) {
         displayRedStripe("Complete");
         delay(1000);
         FREE_TFT
+        const esp_partition_t* partition = esp_partition_find_first(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_APP_OTA_0, NULL);
+            esp_ota_set_boot_partition(partition);
         ESP.restart();
     }
 Exit:

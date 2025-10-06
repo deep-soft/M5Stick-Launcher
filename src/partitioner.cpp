@@ -140,6 +140,7 @@ bool partitionSetter(const uint8_t *scheme, size_t scheme_size) {
 }
 
 void partitioner() {
+    const esp_partition_t* part = esp_partition_find_first(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_APP_OTA_0, NULL);
     int partition = 100;
     const uint8_t *data = nullptr;
     size_t data_size = 0;
@@ -197,6 +198,7 @@ void partitioner() {
     while (!check(SelPress)) yield();
     while (check(SelPress)) yield();
     FREE_TFT
+    esp_ota_set_boot_partition(part);
     ESP.restart();
 Exit:
     Serial.print("Desistiu");
@@ -358,15 +360,15 @@ void partitionCrawler() {
         return;
     }
 
-    if (running_partition->subtype == ESP_PARTITION_SUBTYPE_APP_TEST) {
-        ESP_LOGI(TAG, "Running partition is ESP_PARTITION_SUBTYPE_APP_TEST, no action taken");
+    if (running_partition->subtype == ESP_PARTITION_SUBTYPE_APP_FACTORY) {
+        ESP_LOGI(TAG, "Running partition is ESP_PARTITION_SUBTYPE_APP_FACTORY, no action taken");
         return;
     }
 
     displayRedStripe("Updating...");
 
     const esp_partition_t *test_partition =
-        esp_partition_find_first(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_APP_TEST, NULL);
+        esp_partition_find_first(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_APP_FACTORY, NULL);
 
     if (test_partition == NULL) {
         ESP_LOGE(TAG, "Failed to find test partition");

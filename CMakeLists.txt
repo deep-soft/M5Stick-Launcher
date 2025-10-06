@@ -56,4 +56,4 @@ endif()
 idf_build_set_property(C_COMPILE_OPTIONS "-include${CMAKE_SOURCE_DIR}/boards/pinouts/pins_arduino.h" APPEND)
 idf_build_set_property(CXX_COMPILE_OPTIONS "-include${CMAKE_SOURCE_DIR}/boards/pinouts/pins_arduino.h" APPEND)
 
-project(Launcher)
+project(Launcher_IDF)
