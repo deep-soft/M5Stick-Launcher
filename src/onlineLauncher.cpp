@@ -108,7 +108,7 @@ END:
 }
 void connectWifi() {
     int nets;
-    WiFi.disconnect(true);
+    // WiFi.disconnect(true);
     WiFi.mode(WIFI_MODE_STA);
     displayRedStripe("Scanning...");
     nets = WiFi.scanNetworks();

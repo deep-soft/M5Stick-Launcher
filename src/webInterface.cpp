@@ -1,13 +1,13 @@
 
 #include "webInterface.h"
 #include "display.h"
+#include "esp_ota_ops.h"
 #include "esp_task_wdt.h"
 #include "mykeyboard.h"
 #include "onlineLauncher.h"
 #include "sd_functions.h"
 #include "settings.h"
 #include <globals.h>
-
 struct Config {
     String httpuser;
     String httppassword;   // password to access web admin
@@ -590,6 +590,12 @@ void startWebUi(String ssid, int encryptation, bool mode_ap) {
     while (!check(SelPress)) {
         if (shouldReboot) {
             FREE_TFT
+#if CONFIG_IDF_TARGET_ESP32P4
+            const esp_partition_t *partition =
+                esp_partition_find_first(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_APP_OTA_0, NULL);
+            esp_ota_set_boot_partition(partition);
+            ESP.deepSleep(100);
+#endif
             ESP.restart();
         }
         // Perform installation from SD Card

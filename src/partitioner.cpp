@@ -140,6 +140,10 @@ bool partitionSetter(const uint8_t *scheme, size_t scheme_size) {
 }
 
 void partitioner() {
+#if CONFIG_IDF_TARGET_ESP32P4
+    const esp_partition_t *part =
+        esp_partition_find_first(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_APP_OTA_0, NULL);
+#endif
     int partition = 100;
     const uint8_t *data = nullptr;
     size_t data_size = 0;
@@ -197,6 +201,10 @@ void partitioner() {
     while (!check(SelPress)) yield();
     while (check(SelPress)) yield();
     FREE_TFT
+#if CONFIG_IDF_TARGET_ESP32P4
+    esp_ota_set_boot_partition(part);
+    ESP.deepSleep(100);
+#endif
     ESP.restart();
 Exit:
     Serial.print("Desistiu");
@@ -349,7 +357,11 @@ esp_err_t copy_partition(const esp_partition_t *src, const esp_partition_t *dst)
 
     return ESP_OK;
 }
-
+#if CONFIG_IDF_TARGET_ESP32P4
+#define TARGET_PARTITION ESP_PARTITION_SUBTYPE_APP_FACTORY
+#else
+#define TARGET_PARTITION ESP_PARTITION_SUBTYPE_APP_TEST
+#endif
 // Função principal
 void partitionCrawler() {
     const esp_partition_t *running_partition = esp_ota_get_running_partition();
@@ -358,15 +370,19 @@ void partitionCrawler() {
         return;
     }
 
-    if (running_partition->subtype == ESP_PARTITION_SUBTYPE_APP_TEST) {
-        ESP_LOGI(TAG, "Running partition is ESP_PARTITION_SUBTYPE_APP_TEST, no action taken");
+    if (running_partition->subtype == TARGET_PARTITION) {
+        ESP_LOGI(
+            TAG,
+            "Running partition is %s partition, no action taken",
+            TARGET_PARTITION == ESP_PARTITION_SUBTYPE_APP_TEST ? "TEST" : "FACTORY"
+        );
         return;
     }
 
     displayRedStripe("Updating...");
 
     const esp_partition_t *test_partition =
-        esp_partition_find_first(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_APP_TEST, NULL);
+        esp_partition_find_first(ESP_PARTITION_TYPE_APP, TARGET_PARTITION, NULL);
 
     if (test_partition == NULL) {
         ESP_LOGE(TAG, "Failed to find test partition");

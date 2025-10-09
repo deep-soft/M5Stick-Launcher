@@ -51,7 +51,7 @@ TouchPoint touchPoint;
 keyStroke KeyStroke;
 
 #if defined(HAS_TOUCH)
-volatile uint16_t tftHeight = TFT_WIDTH - 20;
+volatile uint16_t tftHeight = TFT_WIDTH - (FM * LH + 4);
 #else
 volatile uint16_t tftHeight = TFT_WIDTH;
 #endif
@@ -230,6 +230,23 @@ void _post_setup_gpio() {}
 **  Where the devices are started and variables set
 *********************************************************************/
 void setup() {
+#if CONFIG_IDF_TARGET_ESP32P4
+    const esp_partition_t *partition =
+        esp_partition_find_first(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_APP_OTA_0, NULL);
+    esp_ota_set_boot_partition(partition);
+    EEPROM.begin(16);
+    int init = EEPROM.read(6);
+    if (init >= 1) { // restart com eeprom em 1
+        EEPROM.write(6, 0);
+        EEPROM.commit();
+        EEPROM.end();
+        ESP.restart();
+    } else {
+        EEPROM.write(6, 1);
+        EEPROM.commit();
+        EEPROM.end();
+    }
+#endif
     Serial.begin(115200);
 
 // Setup GPIOs and stuff
@@ -339,14 +356,14 @@ void setup() {
     tft->setRotation(rotation);
     if (rotation & 0b1) {
 #if defined(HAS_TOUCH)
-        tftHeight = TFT_WIDTH - 20;
+        tftHeight = TFT_WIDTH - (FM * LH + 4);
 #else
         tftHeight = TFT_WIDTH;
 #endif
         tftWidth = TFT_HEIGHT;
     } else {
 #if defined(HAS_TOUCH)
-        tftHeight = TFT_HEIGHT - 20;
+        tftHeight = TFT_HEIGHT - (FM * LH + 4);
 #else
         tftHeight = TFT_HEIGHT;
 #endif
@@ -412,6 +429,12 @@ void setup() {
         {
             tft->fillScreen(BLACK);
             FREE_TFT
+#if CONFIG_IDF_TARGET_ESP32P4
+            const esp_partition_t *partition =
+                esp_partition_find_first(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_APP_OTA_0, NULL);
+            esp_ota_set_boot_partition(partition);
+            ESP.deepSleep(100);
+#endif
             ESP.restart();
         }
     }
@@ -421,6 +444,12 @@ void setup() {
     if (firstByte == 0xE9) {
         tft->fillScreen(BLACK);
         FREE_TFT
+#if CONFIG_IDF_TARGET_ESP32P4
+        const esp_partition_t *partition =
+            esp_partition_find_first(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_APP_OTA_0, NULL);
+        esp_ota_set_boot_partition(partition);
+        ESP.deepSleep(100);
+#endif
         ESP.restart();
     } else goto Launcher;
 

@@ -261,14 +261,15 @@ int gsetRotation(bool set) {
 
         if (rotation & 0b1) {
 #if defined(HAS_TOUCH)
-            tftHeight = TFT_WIDTH - 20;
+            tftHeight = TFT_WIDTH - (FM * LH + 4);
+            ;
 #else
             tftHeight = TFT_WIDTH;
 #endif
             tftWidth = TFT_HEIGHT;
         } else {
 #if defined(HAS_TOUCH)
-            tftHeight = TFT_HEIGHT - 20;
+            tftHeight = TFT_HEIGHT - (FM * LH + 4);
 #else
             tftHeight = TFT_HEIGHT;
 #endif

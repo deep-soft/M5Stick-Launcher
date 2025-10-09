@@ -309,6 +309,7 @@ String loopSD(bool filePicker) {
     // Function using loopOptions to store and handle files
     returnToMenu = false;
     int index = 0;
+    int Menuindex = 0;
     String Folder = "/";
     String _Folder = ""; // Check if Folder changed
     String PreFolder = "/";
@@ -371,7 +372,7 @@ RESTART:
             {"Delete",      [=]() { deleteFromSd(fileToUse); }                    },
             {"Main Menu",   [=]() { returnToMenu = true; }                        },
         };
-        loopOptions(opt);
+        Menuindex = loopOptions(opt);
         // Menu for if it is an Operator
     } else if (isOperator) {
         if (LongPressDetected) {
@@ -384,7 +385,7 @@ RESTART:
             };
             if (fileToCopy != "") opt.push_back({"Paste", [=]() { pasteFile(Folder); }});
             opt.push_back({"Main Menu", [=]() { returnToMenu = true; }});
-            loopOptions(opt);
+            Menuindex = loopOptions(opt);
         }
         if (bkf || fileToUse == "") {
         BACK_FOLDER:
@@ -404,9 +405,9 @@ RESTART:
         if (fileToCopy != "") opt.push_back({"Paste", [=]() { pasteFile(Folder); }});
         opt.push_back({"Delete", [=]() { deleteFromSd(fileToUse); }});
         opt.push_back({"Main Menu", [=]() { returnToMenu = true; }});
-        loopOptions(opt);
+        Menuindex = loopOptions(opt);
     }
-    read_fs = true;
+    if (Menuindex >= 0) read_fs = true;
     if (!returnToMenu) goto RESTART;
     // Free the memory
     options.clear();
@@ -484,6 +485,12 @@ void updateFromSD(String path) {
         file.close();
         tft->fillScreen(BGCOLOR);
         FREE_TFT
+#if CONFIG_IDF_TARGET_ESP32P4
+        const esp_partition_t *partition =
+            esp_partition_find_first(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_APP_OTA_0, NULL);
+        esp_ota_set_boot_partition(partition);
+        ESP.deepSleep(100);
+#endif
         ESP.restart();
     } else {
         if (!file.seek(0x8000)) goto Exit;
@@ -552,11 +559,11 @@ void updateFromSD(String path) {
         prog_handler = 0; // Install flash update
         if (spiffs && askSpiffs) {
             options = {
-                {"SPIFFS No",  [&]() { spiffs = false; }},
-                {"SPIFFS Yes", [&]() { spiffs = true; } },
-                {"Cancel", [&]() { returnToMenu = true; } }
+                {"SPIFFS No",  [&]() { spiffs = false; }     },
+                {"SPIFFS Yes", [&]() { spiffs = true; }      },
+                {"Cancel",     [&]() { returnToMenu = true; }}
             };
-            if(loopOptions(options)<0 || returnToMenu) {
+            if (loopOptions(options) < 0 || returnToMenu) {
                 file.close();
                 tft->fillScreen(BGCOLOR);
                 return;
@@ -595,6 +602,12 @@ void updateFromSD(String path) {
         displayRedStripe("Complete");
         delay(1000);
         FREE_TFT
+#if CONFIG_IDF_TARGET_ESP32P4
+        const esp_partition_t *partition =
+            esp_partition_find_first(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_APP_OTA_0, NULL);
+        esp_ota_set_boot_partition(partition);
+        ESP.deepSleep(100);
+#endif
         ESP.restart();
     }
 Exit:
