@@ -60,20 +60,6 @@ void InputHandler(void) {
         if (t.isPressed() || t.isHolding()) {
             // Serial.printf("x1=%d, y1=%d, ", t.x, t.y);
             tm = millis();
-            if (rotation == 1) {
-                t.y = (tftHeight + 20) - t.y;
-                t.x = tftWidth - t.x;
-            }
-            if (rotation == 0) {
-                int tmp = t.x;
-                t.x = tftWidth - t.y;
-                t.y = tmp;
-            }
-            if (rotation == 2) {
-                int tmp = t.x;
-                t.x = t.y;
-                t.y = (tftHeight + 20) - tmp;
-            }
             if (!wakeUpScreen()) AnyKeyPress = true;
             else return;
             // Serial.printf("x2=%d, y2=%d, rot=%d\n", t.x, t.y, rotation);

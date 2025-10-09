@@ -193,7 +193,7 @@ void InputHandler(void) {
             PrevPress = prev;
             UpPress = up;
             DownPress = down;
-            SelPress = sel;
+            SelPress = sel | SelPress; // in case G0 is pressed
             EscPress = esc;
             if (del) {
                 KeyStroke.del = del;

@@ -38,7 +38,7 @@ nvs_bin = proj_dir / "support_files/UiFlow2_nvs.bin"
 app_bin  = build_dir / "firmware.bin"
 
 if mcu=="esp32p4":
-    APP_OFFSET = 0x20000
+    APP_OFFSET = 0x10000
     nvs_bin = proj_dir / "support_files/UiFlow2_nvs_p4.bin"
 
 out_bin = proj_dir / f"Launcher-{pioenv}.bin"
