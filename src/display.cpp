@@ -76,10 +76,12 @@ Ard_eSPI *tft = new Ard_eSPI(
 ***************************************************************************************/
 void displayScrollingText(const String &text, Opt_Coord &coord) {
     int len = text.length();
-    String displayText = text + "        "; // Add spaces for smooth looping
-    int scrollLen = len + 8;                // Full text plus space buffer
+    static String displayText = "";
     static int i = 0;
     static long _lastmillis = 0;
+    if (!displayText.startsWith(text)) i = 0;
+    displayText = text + "        "; // Add spaces for smooth looping
+    int scrollLen = len + 8;         // Full text plus space buffer
     tft->setTextColor(coord.fgcolor, coord.bgcolor);
     if (len < coord.size) {
         // Text fits within limit, no scrolling needed
@@ -434,7 +436,7 @@ Opt_Coord drawOptions(
 #else
     int lineHeight = FM * LH;
 #endif
-    const int rowSpacing = 4 * border;
+    const int rowSpacing = 4;
     const int paddingTop = 4;
     const int paddingBottom = 4;
     const int paddingSide = 4;
@@ -585,7 +587,7 @@ Opt_Coord drawOptions(
         int optionIndex = start + i;
         int rowTop = textStartY + rowIndex * (lineHeight + rowSpacing);
         int rowLeft = boxX + paddingSide;
-        tft->fillRect(rowLeft, rowTop, lineWidth, lineHeight, bgcolor);
+        if (i > 0) tft->fillRect(rowLeft, rowTop - rowSpacing, lineWidth, rowSpacing, bgcolor);
 
         bool showEscLabel = (!border && start == 0 && optionIndex == 0);
         int prefixWidth = 0;
@@ -614,12 +616,12 @@ Opt_Coord drawOptions(
         int labelCharLimit = labelWidth / charWidth;
         if (labelCharLimit < 1) labelCharLimit = 1;
 
-        String labelText = opt[optionIndex].label;
-        if (labelText.length() > labelCharLimit) { labelText = labelText.substring(0, labelCharLimit); }
+        char txt[labelCharLimit];
+        snprintf(txt, sizeof(txt), "%-*s", labelCharLimit, opt[optionIndex].label.c_str());
 
         tft->setCursor(labelX, rowTop);
         tft->setTextColor(color, bgcolor);
-        tft->print(labelText);
+        tft->print(txt);
 
         MenuOptions optItem(String(optionIndex), "", nullptr, true, optionIndex == index);
         optItem.setCoords(labelX, rowTop, std::max(0, labelWidth), lineHeight + rowSpacing);
@@ -757,8 +759,8 @@ void drawBatteryStatus(uint8_t bat) {
 #endif
     tft->fillRoundRect(tftWidth - 40, 9, 30, FP * LH + 5, 2, BGCOLOR);
     tft->fillRoundRect(tftWidth - 40, 9, 30 * bat / 100, FP * LH + 5, 2, FGCOLOR);
-    tft->drawLine(tftWidth - 30, 9, tftWidth - 30, FP * LH + 6, BGCOLOR);
-    tft->drawLine(tftWidth - 20, 9, tftWidth - 20, FP * LH + 6, BGCOLOR);
+    tft->drawLine(tftWidth - 30, 9, tftWidth - 30, 9 + FP * LH + 6, BGCOLOR);
+    tft->drawLine(tftWidth - 20, 9, tftWidth - 20, 9 + FP * LH + 6, BGCOLOR);
 }
 
 /*********************************************************************
