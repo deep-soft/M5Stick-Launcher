@@ -51,7 +51,7 @@ void webUIMyNet() {
         }
         options.push_back({"Hidden SSID", [=]() {
                                String __ssid = keyboard("", 32, "Your SSID");
-                               wifiConnect(__ssid.c_str(), 8);
+                               if (__ssid != String(KEY_ESCAPE)) wifiConnect(__ssid.c_str(), 8);
                            }});
         options.push_back({"Main Menu", [=]() { returnToMenu = true; }});
         loopOptions(options);

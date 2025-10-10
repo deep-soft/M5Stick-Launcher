@@ -210,7 +210,7 @@ public:
     inline uint16_t getTextbgcolor() { return _bg; };
 
     inline size_t drawChar2(int16_t x, int16_t y, char c, int16_t a, int16_t b) {
-        return M5.Display.drawChar(x, y, c, a, b, _fsize);
+        return M5.Display.drawChar(x, y, c, b, a, _fsize);
     }
     inline size_t drawCentreString(String s, uint16_t x, uint16_t y, int f) {
         return M5.Display.drawCentreString(s, x, y);

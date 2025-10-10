@@ -133,6 +133,7 @@ bool deleteFromSd(String path) {
 ***************************************************************************************/
 bool renameFile(String path, String filename) {
     String newName = keyboard(filename, 76, "Type the new Name:");
+    if (newName == "" || newName == String(KEY_ESCAPE) || newName == filename) { return false; }
     if (!setupSdCard()) {
         // Serial.println("Falha ao inicializar o cartão SD");
         return false;
@@ -225,6 +226,7 @@ bool pasteFile(String path) {
 ***************************************************************************************/
 bool createFolder(String path) {
     String foldername = keyboard("", 76, "Folder Name: ");
+    if (foldername == "" || foldername == String(KEY_ESCAPE)) { return false; }
     if (!setupSdCard()) {
         // Serial.println("Fail to start SDCard");
         return false;

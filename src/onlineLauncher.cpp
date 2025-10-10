@@ -41,7 +41,13 @@ void wifiConnect(String ssid, int encryptation, bool isAP) {
 
     Retry:
         if (!found || wrongPass) {
-            if (encryptation > 0) pwd = keyboard(pwd, 63, "Network Password:");
+            if (encryptation > 0) {
+                pwd = keyboard(pwd, 63, "Network Password:");
+                if (pwd == String(KEY_ESCAPE)) {
+                    returnToMenu = true;
+                    goto END;
+                }
+            }
 
             EEPROM.begin(EEPROMSIZE);
             if (pwd != EEPROM.readString(20)) {
@@ -120,7 +126,7 @@ void connectWifi() {
     }
     options.push_back({"Hidden SSID", [=]() {
                            String __ssid = keyboard("", 32, "Your SSID");
-                           wifiConnect(__ssid.c_str(), 8);
+                           if (__ssid != String(KEY_ESCAPE)) wifiConnect(__ssid.c_str(), 8);
                        }});
     options.push_back({"Main Menu", [=]() { returnToMenu = true; }});
     loopOptions(options);

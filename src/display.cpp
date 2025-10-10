@@ -1117,7 +1117,8 @@ RESTART:
              }                                                                                          },
             {"Text Search",
              [&]() {
-                 query = keyboard(query, 76, "Search Firmware");
+                 String _q = keyboard(query, 76, "Search Firmware");
+                 if (_q != String(KEY_ESCAPE)) query = _q;
                  refine = true;
              }                                                                                          },
             {"Back to list",                                                   [&]() { refine = false; }}

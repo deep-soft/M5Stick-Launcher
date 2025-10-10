@@ -18,6 +18,7 @@ inline constexpr size_t SETTINGS_JSON_CAPACITY = 8192;
 #define SDM_SD
 #endif
 
+#define KEY_ESCAPE 0x1B
 #define NO_COLOR 1 // color is from 0x0000 (BLACK) to 0xffff (WHITE), 1 is for checking
 
 struct Option {
