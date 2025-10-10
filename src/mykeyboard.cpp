@@ -273,8 +273,8 @@ String generalKeyboard(
     // so these do not change
     /*---------------------------------------------------------------------------------------*/
 
-#define KBLH (LH * FM + LH * FP / 2) // Keyboard Buttons Line Height
 #define PAD 2
+#define KBLH (6 + LH * FM) // Keyboard Buttons Line Height
     // { x coord of btn border, btn width, x coord of the inside text }
     // 12 px = 10 px + 2 of padding between the letters -> refer to the section above to better understand
     // ((12px * n_letters) - 2px ) + 9*2px = width
@@ -358,8 +358,6 @@ String generalKeyboard(
                     );
                 }
 
-                tft->drawRect(3, KBLH + LH * FP + 4, tftWidth - 3, KBLH, FGCOLOR); // typed string border
-
                 /* Highlight the corresponding button when the user cursor is over it */
                 // OK
                 if (x == 0 && y == -1) {
@@ -412,7 +410,6 @@ String generalKeyboard(
 
             // Prints the chars counter
             tft->setTextSize(FP);
-            tft->setTextColor(getComplementaryColor(BGCOLOR), BGCOLOR);
             String chars_counter = String(current_text.length()) + "/" + String(max_size);
             tft->fillRect(
                 tftWidth - ((chars_counter.length() * LW * FP) + 20), // 6px per char + 1 padding
@@ -423,20 +420,18 @@ String generalKeyboard(
             ); // clear previous text
             tft->drawString(chars_counter, tftWidth - ((chars_counter.length() * LW * FP) + 10), KBLH + 4);
 
-            // Prints the title of the textbox, it should report what the user has to write in it
-            tft->setTextColor(getComplementaryColor(BGCOLOR), 0x5AAB);
             tft->drawString(
                 textbox_title.substring(0, max_FP_size - chars_counter.length() - 1), 3, KBLH + 4
             );
-
             // Drawing the textbox and the currently typed string
             tft->setTextSize(FM);
             // reset the text box if needed
             if (current_text.length() == (max_FM_size) || current_text.length() == (max_FM_size + 1) ||
                 current_text.length() == (max_FP_size) || current_text.length() == (max_FP_size + 1))
                 tft->fillRect(3, KBLH + LH * FP + 4, tftWidth - 3, KBLH, BGCOLOR);
+            // typed string border
+            tft->drawRect(3, KBLH + LH * FP + 4, tftWidth - 3, KBLH, FGCOLOR);
             // write the text
-            tft->setTextColor(getComplementaryColor(BGCOLOR));
             if (current_text.length() >
                 max_FM_size) { // if the text is too long, we try to set the smaller font
                 tft->setTextSize(FP);
@@ -454,9 +449,7 @@ String generalKeyboard(
                 tft->drawString(current_text, 5, KBLH + LH * FP + 6);
             }
 
-            tft->setTextColor(getComplementaryColor(BGCOLOR), BGCOLOR);
             tft->setTextSize(FM);
-
             // Draw the actual keyboard
             for (int i = 0; i < KeyboardHeight; i++) {
                 for (int j = 0; j < KeyboardWidth; j++) {
@@ -681,6 +674,7 @@ String generalKeyboard(
             if (KeyStroke.pressed) {
                 wakeUpScreen();
                 tft->setCursor(cursor_x, cursor_y);
+                tft->setTextColor(getComplementaryColor(BGCOLOR), BGCOLOR);
                 String keyStr = "";
                 for (auto i : KeyStroke.word) {
                     if (keyStr != "") {
@@ -701,8 +695,9 @@ String generalKeyboard(
                         tft->print(keyStr.c_str());
                     cursor_x = tft->getCursorX();
                     cursor_y = tft->getCursorY();
-                    if (current_text.length() == (max_FM_size + 1)) redraw = true;
-                    if (current_text.length() == (max_FP_size + 1)) redraw = true;
+                    if (current_text.length() == (max_FM_size + 1) ||
+                        current_text.length() == (max_FP_size + 1))
+                        redraw = true;
                 }
                 if (KeyStroke.del && current_text.length() > 0) { // delete 0x08
                     // Handle backspace key
@@ -712,18 +707,21 @@ String generalKeyboard(
                         tft->setTextSize(FP);
                         fontSize = FP;
                     } else tft->setTextSize(FM);
-                    tft->setCursor((cursor_x - fontSize * LW), cursor_y);
-                    tft->setTextColor(FGCOLOR, BGCOLOR);
-                    tft->print(" ");
-                    tft->setTextColor(getComplementaryColor(BGCOLOR), 0x5AAB);
-                    tft->setCursor(cursor_x - fontSize * LW, cursor_y);
-                    cursor_x = tft->getCursorX();
-                    cursor_y = tft->getCursorY();
+                    cursor_x = cursor_x - fontSize * LW;
+                    tft->setCursor(cursor_x, cursor_y);
+                    tft->fillRect(cursor_x, cursor_y, fontSize * LW, fontSize * LH, BGCOLOR);
                     if (current_text.length() == max_FM_size) redraw = true;
                     if (current_text.length() == max_FP_size) redraw = true;
                 }
                 if (KeyStroke.enter) { break; }
                 KeyStroke.Clear();
+                int _of = tft->getTextsize();
+                tft->setTextSize(FP);
+                String chars_counter = String(current_text.length()) + "/" + String(max_size);
+                tft->drawString(
+                    chars_counter, tftWidth - ((chars_counter.length() * LW * FP) + 10), KBLH + 4
+                );
+                tft->setTextSize(_of);
 #ifdef E_PAPER_DISPLAY
                 tft->startCallback();
                 tft->display(false);
