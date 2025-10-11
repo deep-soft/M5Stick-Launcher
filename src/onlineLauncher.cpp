@@ -304,7 +304,7 @@ retry:
                         // Ler dados em partes
                         int size_av = stream->available();
                         if (size_av) {
-                            int c = stream->readBytes(buff, std::min(size_av, bufSize));
+                            int c = stream->readBytes(buff, size_av < bufSize ? size_av : bufSize);
                             if (c <= 0) continue;
                             size_t wrote = file.write(buff, c);
                             if (wrote != static_cast<size_t>(c)) {

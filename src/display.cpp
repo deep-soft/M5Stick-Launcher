@@ -4,7 +4,6 @@
 #include "powerSave.h"
 #include "sd_functions.h"
 #include "settings.h"
-#include <algorithm>
 #include <cstring>
 #include <globals.h>
 
@@ -472,16 +471,15 @@ Opt_Coord drawOptions(
         bool hasUp = !pages.empty();
         int maxOptions = totalRows - (hasUp ? 1 : 0);
         if (maxOptions < 1) maxOptions = 1;
-
-        int count = std::min(remaining, maxOptions);
+        int count = remaining < maxOptions ? remaining : maxOptions;
         bool hasDown = (remaining > count);
         if (hasDown) {
             int maxWithDown = totalRows - (hasUp ? 1 : 0) - 1;
             if (maxWithDown < 1) maxWithDown = 1;
-            count = std::min(count, maxWithDown);
+            count = count < maxWithDown ? count : maxWithDown;
             if (count >= remaining) hasDown = false;
         }
-        if (count < 1) { count = std::min(remaining, 1); }
+        if (count < 1) { count = remaining < 1 ? remaining : 1; }
 
         pages.push_back({pageStart, count, hasUp, hasDown});
         pageStart += count;
@@ -515,10 +513,10 @@ Opt_Coord drawOptions(
     showPageUp = pages[currentPage].pageUp;
     showPageDown = pages[currentPage].pageDown;
 
-    if (optionCount == 0) { optionCount = std::min(arraySize, totalRows); }
+    if (optionCount == 0) { optionCount = arraySize < totalRows ? arraySize : totalRows; }
 #else
     start = (index / totalRows) * totalRows;
-    optionCount = std::min(arraySize - start, totalRows);
+    optionCount = arraySize < totalRows ? arraySize : totalRows;
 #endif
 
     int rowsThisPage = optionCount + (showPageUp ? 1 : 0) + (showPageDown ? 1 : 0);
@@ -526,11 +524,10 @@ Opt_Coord drawOptions(
 
     int rowsForHeight = rowsThisPage;
 #ifdef HAS_TOUCH
-    rowsForHeight = std::max(rowsForHeight, maxRowsAcrossPages);
+    rowsForHeight = rowsForHeight > maxRowsAcrossPages ? rowsForHeight : maxRowsAcrossPages;
 #else
-    rowsForHeight = std::max(rowsForHeight, totalRows);
+    rowsForHeight = rowsForHeight > optionCount ? rowsForHeight : optionCount;
 #endif
-
     int contentHeight =
         paddingTop + paddingBottom + rowsForHeight * lineHeight + (rowsForHeight - 1) * rowSpacing;
     int boxY;
@@ -568,7 +565,7 @@ Opt_Coord drawOptions(
     auto addNavLine = [&](const char *text, bool isUp) {
         int rowTop = textStartY + rowIndex * (lineHeight + rowSpacing);
         int textWidth = strlen(text) * charWidth;
-        int navX = boxX + paddingSide + std::max(0, (lineWidth - textWidth) / 2);
+        int navX = boxX + paddingSide + 0 > ((lineWidth - textWidth) / 2) ? 0 : ((lineWidth - textWidth) / 2);
         tft->fillRect(boxX + paddingSide, rowTop, lineWidth, lineHeight, bgcolor);
         tft->setCursor(navX, rowTop);
         tft->setTextColor(ALCOLOR, bgcolor);
@@ -580,18 +577,18 @@ Opt_Coord drawOptions(
 
         rowIndex++;
     };
-
+#ifdef HAS_TOUCH
     if (showPageUp) { addNavLine("-- Page Up --", true); }
-
+#endif
     for (int i = 0; i < optionCount && (start + i) < arraySize; ++i) {
         int optionIndex = start + i;
         int rowTop = textStartY + rowIndex * (lineHeight + rowSpacing);
         int rowLeft = boxX + paddingSide;
         if (i > 0) tft->fillRect(rowLeft, rowTop - rowSpacing, lineWidth, rowSpacing, bgcolor);
-
-        bool showEscLabel = (!border && start == 0 && optionIndex == 0);
         int prefixWidth = 0;
         int cursorX = rowLeft;
+#ifdef HAS_TOUCH
+        bool showEscLabel = (!border && start == 0 && optionIndex == 0);
         if (showEscLabel) {
             tft->setCursor(cursorX, rowTop);
             tft->setTextColor(RED, bgcolor);
@@ -599,6 +596,7 @@ Opt_Coord drawOptions(
             prefixWidth += 5 * charWidth;
             cursorX += 5 * charWidth;
         }
+#endif
 
         tft->setCursor(cursorX, rowTop);
         tft->setTextColor(fgcolor, bgcolor);
@@ -624,7 +622,7 @@ Opt_Coord drawOptions(
         tft->print(txt);
 
         MenuOptions optItem(String(optionIndex), "", nullptr, true, optionIndex == index);
-        optItem.setCoords(labelX, rowTop, std::max(0, labelWidth), lineHeight + rowSpacing);
+        optItem.setCoords(labelX, rowTop, 0 > labelWidth ? 0 : labelWidth, lineHeight + rowSpacing);
         t_menu.push_back(optItem);
 
         if (optionIndex == index) {
@@ -637,8 +635,9 @@ Opt_Coord drawOptions(
 
         rowIndex++;
     }
-
+#ifdef HAS_TOUCH
     if (showPageDown) { addNavLine("-- Page Down --", false); }
+#endif
     if (rowIndex < rowsForHeight) {
         int rowLeft = boxX + paddingSide;
         while (rowIndex < rowsForHeight) {
