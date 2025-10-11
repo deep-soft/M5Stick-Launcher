@@ -628,7 +628,7 @@ Opt_Coord drawOptions(
         if (optionIndex == index) {
             coord.x = labelX;
             coord.y = rowTop;
-            coord.size = labelCharLimit + 1;
+            coord.size = labelCharLimit;
             coord.fgcolor = color;
             coord.bgcolor = bgcolor;
         }
