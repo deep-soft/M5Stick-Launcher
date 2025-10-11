@@ -104,6 +104,9 @@ void wifiConnect(String ssid, int encryptation, bool isAP) {
     } else { // Running in Access point mode
         IPAddress AP_GATEWAY(172, 0, 0, 1);
         WiFi.mode(WIFI_AP);
+#if CONFIG_ESP_HOSTED_ENABLED
+        vTaskDelay(500 / portTICK_PERIOD_MS);
+#endif
         WiFi.softAPConfig(AP_GATEWAY, AP_GATEWAY, IPAddress(255, 255, 255, 0));
         WiFi.softAP("Launcher", "", 6, 0, 1, false);
         Serial.print("IP: ");
@@ -117,6 +120,9 @@ void connectWifi() {
     // WiFi.disconnect(true);
     WiFi.mode(WIFI_MODE_STA);
     displayRedStripe("Scanning...");
+#if CONFIG_ESP_HOSTED_ENABLED
+    vTaskDelay(500 / portTICK_PERIOD_MS);
+#endif
     nets = WiFi.scanNetworks();
     options = {};
     for (int i = 0; i < nets; i++) {
@@ -137,15 +143,10 @@ void connectWifi() {
 ***************************************************************************************/
 void ota_function() {
 #ifndef DISABLE_OTA
-    if (!stopOta) {
-        if (WiFi.status() != WL_CONNECTED) connectWifi();
-        if (WiFi.status() == WL_CONNECTED)
-            if (GetJsonFromLauncherHub()) loopFirmware();
-        tft->fillScreen(BGCOLOR);
-    } else {
-        displayRedStripe("Restart to open OTA");
-        delay(3000);
-    }
+    if (WiFi.status() != WL_CONNECTED) connectWifi();
+    if (WiFi.status() == WL_CONNECTED)
+        if (GetJsonFromLauncherHub()) loopFirmware();
+    tft->fillScreen(BGCOLOR);
 #else
     displayRedStripe("Not M5 Device");
     delay(3000);

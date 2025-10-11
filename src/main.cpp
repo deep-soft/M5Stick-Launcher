@@ -88,11 +88,6 @@ bool onlyBins;
 bool returnToMenu;
 bool update;
 bool askSpiffs;
-#ifdef DISABLE_OTA
-bool stopOta = true;
-#else
-bool stopOta;
-#endif
 
 // bool command;
 size_t file_size;
@@ -471,8 +466,7 @@ void loop() {
     bool redraw = true;
     bool update_sd;
     int index = 0;
-    int opt = 5;     // there are 3 options> 1 list SD files, 2 OTA, 3 USB and 4 Config
-    stopOta = false; // variable used in WebUI, and to prevent open OTA after webUI without restart
+    int opt = 5; // there are 3 options> 1 list SD files, 2 OTA, 3 USB and 4 Config
     getBrightness();
     if (!sdcardMounted) index = 1; // if SD card is not present, paint SD square grey and auto select OTA
     std::vector<MenuOptions> menuItems = {
@@ -498,7 +492,7 @@ void loop() {
 #endif
          [=]() { loopOptionsWebUi(); }
         },
-#ifdef ARDUINO_USB_MODE
+#if defined(ARDUINO_USB_MODE) && !defined(ARDUINO_M5STACK_TAB5)
         {
 #if TFT_HEIGHT < 135
          "USB", "SD->USB",

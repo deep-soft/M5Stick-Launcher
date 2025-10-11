@@ -39,23 +39,7 @@ String uploadFolder = "";
 **********************************************************************/
 void webUIMyNet() {
     if (WiFi.status() != WL_CONNECTED) {
-        int nets;
-        WiFi.mode(WIFI_MODE_STA);
-        displayRedStripe("Scanning...");
-        nets = WiFi.scanNetworks();
-        options = {};
-        for (int i = 0; i < nets; i++) {
-            options.push_back({WiFi.SSID(i).c_str(), [=]() {
-                                   startWebUi(WiFi.SSID(i).c_str(), int(WiFi.encryptionType(i)));
-                               }});
-        }
-        options.push_back({"Hidden SSID", [=]() {
-                               String __ssid = keyboard("", 32, "Your SSID");
-                               if (__ssid != String(KEY_ESCAPE)) wifiConnect(__ssid.c_str(), 8);
-                           }});
-        options.push_back({"Main Menu", [=]() { returnToMenu = true; }});
-        loopOptions(options);
-
+        connectWifi();
     } else {
         // If it is already connected, just start the network
         startWebUi("", 0, false);
@@ -616,7 +600,6 @@ void startWebUi(String ssid, int encryptation, bool mode_ap) {
     WiFi.softAPdisconnect(true);
     WiFi.disconnect(true, true);
     WiFi.mode(WIFI_OFF);
-    stopOta = true; // used to verify if webUI was opened before to stop OTA and request restart
 
     tft->fillScreen(BGCOLOR);
 }
@@ -677,7 +660,6 @@ void startWebUi(String ssid, int encryptation, bool mode_ap) {
     delete server;
     WiFi.softAPdisconnect(true);
     WiFi.disconnect(true, true);
-    WiFi.mode(WIFI_OFF);
 }
 
 #endif

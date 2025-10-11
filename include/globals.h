@@ -225,9 +225,6 @@ extern bool update;
 // Used to choose SPIFFS or not
 extern bool askSpiffs;
 
-// Don't let open OTA after use WebUI due t oRAM handling
-extern bool stopOta;
-
 // size o the file in the webInterface
 extern size_t file_size;
 
